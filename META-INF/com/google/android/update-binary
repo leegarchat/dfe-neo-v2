@@ -1,0 +1,114 @@
+#!/sbin/sh
+
+export ZIPARG1="$1" ZIPARG2="$2" ZIPARG3="$3" TMPN="/tmp/neov2" ZIP="/tmp/neov2/zip/DFENEO.zip" TMP_TOOLS="/tmp/neov2/unzip/META-INF/tools"
+export SYS_STATUS=$(if [[ -z "$(getprop sys.boot_completed)" ]] && [[ -z "$(getprop dev.bootcomplete)" ]] ; then echo false ; else echo true ; fi)
+
+export EXEMPLE_VERSION=
+
+# Custom print function
+my_print(){
+  $SYS_STATUS && { echo -e "$1" ; } || { echo -e "ui_print $1\nui_print" >>"/proc/self/fd/$ZIPARG2" ; }
+}
+
+# Abort function with optional error messages
+# Функция прерывания с опциональными сообщениями об ошибке
+abort_neo() {
+    message="" 
+    error_message="" 
+    exit_code=0
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -m)
+            [ -n "$2" ] && {
+                message="$2"
+                shift 2
+            } || {
+                my_print "Missing message after -m"
+                exit 1
+            }
+            ;;
+        -e)
+            [[ -n "$2" ]] && {
+                error_message="$2"
+                shift 2
+            } || {
+                my_print "Missing error message after -e"
+                exit 1
+            }
+            ;;
+        *)
+            my_print "Invalid argument: $1"
+            exit 1
+            ;;
+        esac
+    done
+    [ -n "$message" ] && {
+        my_print " "
+        my_print " "
+        my_print "- $message"
+    }
+
+    num="$error_message"
+    rounded_num=$(echo "$num" | awk '{printf "%.0f\n", $1}')
+    if ((rounded_num < 0)); then
+        error_code=0
+    elif ((rounded_num > 255)); then
+        error_code=255
+    else
+        error_code=$rounded_num
+    fi
+
+    [ -n "$error_message" ] && {
+        #my_print "- !!!Выход с ошибкой: $error_message!!!"
+        my_print "  !!!Exiting with error: $error_message!!!"
+        my_print " "
+        my_print " "
+        exit "$error_code"
+    }
+}
+
+# Check for unzip binary presence, otherwise abort
+# Проверка наличия двоичного файла unzip, в противном случае прервать
+type unzip 2> /dev/null || abort_neo -e "20.1" -m "Missing unzip binary"
+
+rm -rf $TMPN
+my_print "- unpacking zip" # Распаковка .zip архива
+
+mkdir -p $TMPN/zip $TMPN/unzip $TMPN/tmp || abort_neo -e "20.2" -m "Failed to create script working directories"
+cp "$ZIPARG3" "$ZIP" || abort_neo -e "20.3" -m "Failed to copy $(basename $ZIPARG3) to temporary folder"
+cd "$TMPN/unzip" || abort_neo -e "20.4" -m "Failed to change directory for unzip"
+unzip "$ZIP" || abort_neo -e "20.5" -m "Failed to unzip archive"
+
+for folder in "$TMP_TOOLS"/* ; do
+  [[ -d $folder ]] && {
+    for file in "$folder"/* ; do 
+      chmod 777 "$file"
+    done
+  } || chmod 777 "$folder"
+done
+ARCH=""
+for ARCH_T in arm64-v8a armeabi-v7a x86_64 x86 ; do
+  if [[ -d "$TMP_TOOLS/binary/$ARCH_T" ]] ; then 
+    [[ -f "$TMP_TOOLS/binary/$ARCH_T"/bash ]] || abort_neo -e "20.6" -m "For some reason, the bash binary is missing in dfe-neo"
+    "$TMP_TOOLS/binary/$ARCH_T"/bash --version &>/dev/null && {
+      "$TMP_TOOLS/binary/$ARCH_T"/magisk
+      magisk_out_error=$?
+      if [[ "$magisk_out_error" == "1" ]] || [[ "$magisk_out_error" == "0" ]] ; then 
+        my_print "- Your device has architecture: $ARCH_T"
+        export ARCH="$ARCH_T" 
+        break
+      else
+          abort_neo -e "20.6" -m "$ARCH_T architecture is not compatible with your device"
+      fi
+    }
+  fi
+done
+if [[ -z $ARCH ]] ; then 
+  abort_neo -e "20.6" -m "For some reason, the bash binary is missing in dfe-neo"
+fi
+[[ -z $ARCH ]] && { abort_neo -e "20.7" -m "No supported binary files for your architecture. Device is not supported" ; } || {
+  [[ -f "$TMP_TOOLS/install.sh" ]] || abort_neo -e "20.8" -m "For some reason, the installation .sh file is missing"
+  $TMP_TOOLS/binary/$ARCH/bash $TMP_TOOLS/install.sh || exit $?
+}
+
+exit 0
