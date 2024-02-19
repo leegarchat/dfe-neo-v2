@@ -10,7 +10,7 @@ magisk=false
 where_to_inject=false
 where_to_inject_auto=""
 MAGISK_ZIP=""
-NEO_VERSION="DFE NEO 2.4.0"
+NEO_VERSION="DFE NEO 2.4.6"
 
 if [ -n "$EXEMPLE_VERSION" ] ; then
     NEO_VERSION="DFE-NEO $EXEMPLE_VERSION"
@@ -261,7 +261,17 @@ make_img() {
             CONTEXT_LINE="/${LABLE}${FILE_FORMAT}(/.*)? ${OWNER}"
             echo $CONTEXT_LINE >> "${FILE_CONTEXTS_FILE}"
         fi
-        CONTEXT_LINE="/${LABLE}${FILE_FORMAT} ${OWNER}"
+            su_contects=false
+        for check_su_contects in "magisk.db" "denylist.txt" "sqlite3" "init.sh" "magisk" ; do 
+            if echo "${FILE#$TARGET_DIR}" | grep "$check_su_contects" ; then 
+               su_contects=true 
+            fi
+        done
+        if $su_contects ; then 
+            CONTEXT_LINE="/${LABLE}${FILE_FORMAT} u:r:su:s0"
+        else 
+            CONTEXT_LINE="/${LABLE}${FILE_FORMAT} ${OWNER}"
+        fi
         if ! [ "${LABLE}${FILE#$TARGET_DIR}" == "${LABLE}" ] ; then
             echo $CONTEXT_LINE >> "${FILE_CONTEXTS_FILE}"
         fi
@@ -357,25 +367,50 @@ export -f find_block_neo
 
 check_config() {
     local CONFIG_NEO="$1"
-
+    if [[ "$(grep "force_start=" "$CONFIG_NEO" | grep -v "#" | wc -l)" == "1" ]]; then
+        if grep -w "force_start=false" "$CONFIG_NEO" ; then
+            check_true_false_only=false    
+        elif grep -w "force_start=true" "$CONFIG_NEO" ; then 
+            check_true_false_only=true
+        else
+            abort_neo -e 22.1 -m "The config is configured incorrectly. Line force_start="
+        fi
+    else
+        abort_neo -e 22.2 -m "The config is configured incorrectly. More than one line force_start="
+    fi
     for text in zygisk_turn_on add_custom_deny_list; do
-        if [[ "$(grep "${text}=" "$CONFIG_NEO" | wc -l)" == "1" ]]; then
-            if grep -w "${text}=false" "$CONFIG_NEO" || grep -w "${text}=ask" "$CONFIG_NEO" || grep -w "${text}=first_time_boot" "$CONFIG_NEO" || grep -w "${text}=always_on_boot" "$CONFIG_NEO"; then
-                continue
+        if [[ "$(grep "${text}=" "$CONFIG_NEO" | grep -v "#" | wc -l)" == "1" ]]; then
+            if $check_true_false_only ; then
+                if grep -w "${text}=false" "$CONFIG_NEO" || grep -w "${text}=first_time_boot" "$CONFIG_NEO" || grep -w "${text}=always_on_boot" "$CONFIG_NEO"; then
+                    continue
+                else
+                    abort_neo -e 22.1 -m "The config is configured incorrectly. Line ${text}="
+                fi
             else
-                abort_neo -e 22.1 -m "The config is configured incorrectly. Line ${text}="
+                if grep -w "${text}=false" "$CONFIG_NEO" || grep -w "${text}=ask" "$CONFIG_NEO" || grep -w "${text}=first_time_boot" "$CONFIG_NEO" || grep -w "${text}=always_on_boot" "$CONFIG_NEO"; then
+                    continue
+                else
+                    abort_neo -e 22.1 -m "The config is configured incorrectly. Line ${text}="
+                fi
             fi
         else
             abort_neo -e 22.2 -m "The config is configured incorrectly. More than one line ${text}="
         fi
     done
-
-    for text in hide_not_encrypted safety_net_fix remove_pin wipe_data modify_early_mount; do
-        if [[ "$(grep "${text}=" "$CONFIG_NEO" | wc -l)" == "1" ]]; then
-            if grep -w "${text}=false" "$CONFIG_NEO" || grep -w "${text}=true" "$CONFIG_NEO" || grep -w "${text}=ask" "$CONFIG_NEO"; then
-                continue
+    for text in hide_not_encrypted safety_net_fix remove_pin wipe_data modify_early_mount disable_verity_and_verification; do
+        if [[ "$(grep "${text}=" "$CONFIG_NEO" | grep -v "#" | wc -l)" == "1" ]]; then
+            if $check_true_false_only ; then
+                if grep -w "${text}=false" "$CONFIG_NEO" || grep -w "${text}=true" "$CONFIG_NEO"; then
+                    continue
+                else
+                    abort_neo -e 22.1 -m "The config is configured incorrectly. Line ${text}="
+                fi
             else
-                abort_neo -e 22.1 -m "The config is configured incorrectly. Line ${text}="
+                if grep -w "${text}=false" "$CONFIG_NEO" || grep -w "${text}=true" "$CONFIG_NEO" || grep -w "${text}=ask" "$CONFIG_NEO"; then
+                    continue
+                else
+                    abort_neo -e 22.1 -m "The config is configured incorrectly. Line ${text}="
+                fi
             fi
         else
             abort_neo -e 22.2 -m "The config is configured incorrectly. More than one line ${text}="
@@ -383,7 +418,7 @@ check_config() {
     done
 
     
-    if [[ "$(grep "dfe_paterns=" "$CONFIG_NEO" | wc -l)" == "1" ]]; then
+    if [[ "$(grep "dfe_paterns=" "$CONFIG_NEO" | grep -v "#" | wc -l)" == "1" ]]; then
         if [[ "$(grep "dfe_paterns=" "$CONFIG_NEO")" == "dfe_paterns=" ]] || [[ "$(grep "dfe_paterns=" "$CONFIG_NEO")" == "dfe_paterns=\"\"" ]] ; then
             abort_neo -e 22.44 -m "Patterns for removal are empty. Configure NEO.config correctly"
         fi
@@ -392,7 +427,7 @@ check_config() {
     fi
 
     
-    if [[ "$(grep "where_to_inject=" "$CONFIG_NEO" | wc -l)" == "1" ]]; then
+    if [[ "$(grep "where_to_inject=" "$CONFIG_NEO" | grep -v "#" | wc -l)" == "1" ]]; then
         if ! grep -w "where_to_inject=super" "$CONFIG_NEO" && ! grep -w "where_to_inject=vendor_boot" "$CONFIG_NEO" && ! grep -w "where_to_inject=auto" "$CONFIG_NEO" && ! grep -w "where_to_inject=boot" "$CONFIG_NEO"; then
             abort_neo -e 22.5 -m "The config is configured incorrectly. where_to_inject= expects vendor_boot or boot or super"
         fi
@@ -489,104 +524,137 @@ update_partitions(){
 
 
     for CHECK_SLOT in 0 1 ; do 
-    for CHECK_SUFFIX in _a _b ; do
-        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map system$CHECK_SUFFIX
-        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
-        if $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map system$CHECK_SUFFIX &> $TMPN/outSlog ; then
-            if $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map vendor$CHECK_SUFFIX &> $TMPN/outVlog ; then
-                if ! (grep "Creating dm partition for" $TMPN/outSlog) && ! (grep "Creating dm partition for" $TMPN/outVlog)  ; then
-                    continue
-                fi
-                if (grep "Could not map partition:" $TMPN/outSlog) && (grep "Could not map partition:" $TMPN/outVlog) ; then
-                    continue
-                fi
-                
-                DM_PATHS=$(grep "Creating dm partition for" $TMPN/outSlog | awk '{print $9}')
-                DM_PATHV=$(grep "Creating dm partition for" $TMPN/outVlog | awk '{print $9}')
+        for CHECK_SUFFIX in _a _b ; do
+            if $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map system$CHECK_SUFFIX &> $TMPN/outSlog ; then
+                if $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map vendor$CHECK_SUFFIX &> $TMPN/outVlog ; then
+                    if ! (grep "Creating dm partition for" $TMPN/outSlog) && ! (grep "Creating dm partition for" $TMPN/outVlog)  ; then
+                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
+                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
+                        continue
+                    fi
+                    if (grep "Could not map partition:" $TMPN/outSlog) && (grep "Could not map partition:" $TMPN/outVlog) ; then
+                        continue
+                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
+                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
+                    fi
+                    
+                    DM_PATHS=$(grep "Creating dm partition for" $TMPN/outSlog | awk '{print $9}')
+                    DM_PATHV=$(grep "Creating dm partition for" $TMPN/outVlog | awk '{print $9}')
 
-                if [[ -n "$DM_PATHS" ]] ; then [ -d $TMPN/mount_test ] || mkdir $TMPN/mount_test
-                    if ! mount -r $DM_PATHS $TMPN/mount_test ; then
+                    if [[ -n "$DM_PATHS" ]] ; then 
+                        [ -d $TMPN/mount_test ] || mkdir $TMPN/mount_test
                         if ! mount -r $DM_PATHS $TMPN/mount_test ; then
-                            if ! mount -r $DM_PATHS $TMPN/mount_test ; then continue
-                            fi ; continue
-                        fi ; continue ; fi
-                else continue ; fi 
-                umount -fl $DM_PATHS
-                umount -fl $DM_PATHS
-                $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
-                $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
-                if [[ -n "$DM_PATHV" ]] ; then [ -d $TMPN/mount_test ] || mkdir $TMPN/mount_test
-                    if ! mount -r $DM_PATHV $TMPN/mount_test ; then
+                            if ! mount -r $DM_PATHS $TMPN/mount_test ; then
+                                if ! mount -r $DM_PATHS $TMPN/mount_test ; then 
+                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
+                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
+                                    continue
+                                fi 
+                            fi 
+                        fi
+                    else 
+                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
+                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
+                        continue 
+                    fi 
+                    umount -fl $DM_PATHS
+                    umount -fl $DM_PATHS
+                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
+                    if [[ -n "$DM_PATHV" ]] ; then 
+                        [ -d $TMPN/mount_test ] || mkdir $TMPN/mount_test
                         if ! mount -r $DM_PATHV $TMPN/mount_test ; then
-                            if ! mount -r $DM_PATHV $TMPN/mount_test ; then continue
-                            fi ; continue
-                        fi ; continue ; fi
-                else continue ; fi 
-                umount -fl $DM_PATHV
-                umount -fl $DM_PATHV
-                $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
-                $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
-                
-                
-                ACTIVE_SLOT_SUFFIX+="$CHECK_SLOT:$CHECK_SUFFIX "
+                            if ! mount -r $DM_PATHV $TMPN/mount_test ; then
+                                if ! mount -r $DM_PATHV $TMPN/mount_test ; then 
+                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
+                                    continue
+                                fi 
+                            fi 
+                        fi
+                    else 
+                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
+                        continue 
+                    fi 
+                    umount -fl $DM_PATHV
+                    umount -fl $DM_PATHV
+                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
+                    
+                    
+                    ACTIVE_SLOT_SUFFIX+="$CHECK_SLOT:$CHECK_SUFFIX "
+                else 
+                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX
+                fi
+            else
+                $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX
             fi
-        fi
-    done 
+        done 
     done
 
     echo "$ACTIVE_SLOT_SUFFIX"
     case "${ACTIVE_SLOT_SUFFIX// /}" in 
     "0:_a1:_a"|"0:_a") 
         export FINAL_ACTIVE_SLOT=0
-        экспортировать FINAL_ACTIVE_SUFFIX=_a
+        export FINAL_ACTIVE_SUFFIX=_a
     ;;
     "0:_b1:_b"|"1:_b") 
         export FINAL_ACTIVE_SLOT=1
         export FINAL_ACTIVE_SUFFIX=_b
     ;;
     "0:_a1:_b")
-        if grep -q "source_slot: A" /tmp/recovery.log && grep -q "target_slot: B" /tmp/recovery.log ; затем
-        экспортировать FINAL_ACTIVE_SLOT=1
-        экспортировать FINAL_ACTIVE_SUFFIX=_b
-        elif grep -q "исходный_слот: B" /tmp/recovery.log && grep -q "целевой_слот: A" /tmp/recovery.log ; затем
-        экспортировать FINAL_ACTIVE_SLOT=0
-        экспортировать FINAL_ACTIVE_SUFFIX=_a
-        еще
-        экспортировать FINAL_ACTIVE_SLOT=$SLOTCURRENT
-экспорт FINAL_ACTIVE_SUFFIX=$SUFFIXCURRENT
+        if grep -q "source_slot: A" /tmp/recovery.log && grep -q "target_slot: B" /tmp/recovery.log ; then
+        export FINAL_ACTIVE_SLOT=1
+        export FINAL_ACTIVE_SUFFIX=_b
+        elif grep -q "target_slot: B" /tmp/recovery.log && grep -q "source_slot: A" /tmp/recovery.log ; then
+        export FINAL_ACTIVE_SLOT=0
+        export FINAL_ACTIVE_SUFFIX=_a
+        else
+        export FINAL_ACTIVE_SLOT=$SLOTCURRENT
+        export FINAL_ACTIVE_SUFFIX=$SUFFIXCURRENT
         fi
     ;;
     "0:_a0:_b1_:a1:_b")
         my_print " !!!!!!!!! " 
-        my_print "- I can't determine your boot slit, help me with this"
-        my_print "    The volume button up (+) for choosing a slot _a/0"
-        my_print "    Volume button down (-) to select the slot _b/1"
-        if volume_selector ; then 
-            export FINAL_ACTIVE_SLOT=0
-            export FINAL_ACTIVE_SUFFIX=_a
-        else
-            export FINAL_ACTIVE_SLOT=1
-            export FINAL_ACTIVE_SUFFIX=_b
+        
+        if ! $force_start ; then 
+        my_print "- $word93"
+            my_print "    $word94"
+            my_print "    $word95"
+            if volume_selector ; then 
+                export FINAL_ACTIVE_SLOT=0
+                export FINAL_ACTIVE_SUFFIX=_a
+            else
+                export FINAL_ACTIVE_SLOT=1
+                export FINAL_ACTIVE_SUFFIX=_b
+            fi
+        else 
+            my_print "- $word96"
+            exit 119
         fi
     ;;
     *)
     exit 118
     ;;
     esac 
-
-    for partition in $($TOOLS/lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --get-info | grep "NamePartInGroup->" | awk '{print $1}') ; do
-    name_part=${partition/"NamePartInGroup->"/}
-    echo "$name_part"
-    if $TOOLS/lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --map $name_part > $TMPN/outlog ; then
-        DM_PATH=$(grep "Creating dm partition for" $TMPN/outlog | awk '{print $9}')
-        name_part_without_suffix=$(basename ${name_part%"$FINAL_ACTIVE_SUFFIX"*})
-        if [ "$name_part_without_suffix" == "system" ] ; then 
-        name_part_without_suffix=system_root
+    for suffix_for in _a _b ; do 
+        for file_for_mapper in /dev/block/mapper/*$suffix_for ; do
+                $TOOLS/lptools_new --super $super_block --slot 0 --suffix $suffix_for --unmap $file_for_mapper
+                $TOOLS/lptools_new --super $super_block --slot 1 --suffix $suffix_for --unmap $file_for_mapper
+        done
+    done
+    for partition in $($TOOLS/lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | awk '{print $1}') ; do
+        name_part=${partition/"NamePartInGroup->"/}
+        echo "$name_part"
+        if $TOOLS/lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --map $name_part > $TMPN/outlog ; then
+            cat $TMPN/outlog
+            DM_PATH=$(grep "Creating dm partition for" $TMPN/outlog | awk '{print $9}')
+            name_part_without_suffix=$(basename ${name_part%"$FINAL_ACTIVE_SUFFIX"*})
+            if [ "$name_part_without_suffix" == "system" ] ; then 
+            name_part_without_suffix=system_root
+            fi
+            echo "$name_part_without_suffix"
+            echo "$DM_PATH /$name_part_without_suffix auto ro 0 0" >> /etc/fstab
+            sleep 1
         fi
-        echo "$name_part_without_suffix"
-        echo "$DM_PATH /$name_part_without_suffix auto ro 0 0" >> /etc/fstab
-        sleep 1
-    fi
+
     done
    
     echo 4
@@ -641,9 +709,14 @@ remove_dfe_neo(){
     boot_detect_truefalse=$1
     super_detect_truefalse=$2
     
+    
     if $super_detect_truefalse ; then
-        $TOOLS/lptools_new --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --super $super_block --remove "neo_inject"
-        $TOOLS/lptools_new --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --super $super_block --remove "neo_inject$FINAL_ACTIVE_SUFFIX"
+        if [[ -n "$FINAL_ACTIVE_SLOT" ]] ; then 
+            $TOOLS/lptools_new --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --super $super_block --remove "neo_inject$FINAL_ACTIVE_SUFFIX"
+        else
+            $TOOLS/lptools_new --super $super_block --remove "neo_inject"
+        fi
+        
     fi
 
     for boot_sda in vendor_boot boot; do
@@ -688,7 +761,6 @@ remove_dfe_neo(){
                             continue
                         fi
                     }
-
                     if [[ -f "$work_folder/ramdisk.cpio" ]]; then
                         # word31="Распаковка ramdsik.cpio"
                         my_print "- $word31" && {
@@ -709,7 +781,6 @@ remove_dfe_neo(){
                                         grep -q "/system/etc/init/hw" "$fstab" && {
                                             sed -i '/\/system\/etc\/init\/hw/d' "$fstab"
                                         }
-
                                         $TOOLS/magiskboot cpio "$work_folder/ramdisk.cpio" "add 777 ${fstab//$work_folder\/ramdisk\//} $fstab"
                                     }
 
@@ -803,11 +874,6 @@ my_print "- $word2" && {
     export FLASH_IN_AUTO=false
     export FLASH_IN_BOOT=true
 
-    
-
-
-
-
     [[ ${#super_block[@]} -gt 0 ]] || abort_neo -e "24.1" -m "$word3" # word3="Neo предназначен только для устройств с суперразделом"
 
     if [[ -n "$CSLOT" ]]; then
@@ -821,6 +887,7 @@ my_print "- $word2" && {
     DETECT_NEO_IN_BOOT=false
     DETECT_NEO_IN_SUPER=false
     DETECT_NEO_IN_VENDOR_BOOT=false
+    DFE_NEO_DETECT_IN_FSTAB=false
     echo 16
     if $(find_block_neo -c -b vendor_boot${RCSLOT}) ; then
         if cat $(find_block_neo -b vendor_boot${RCSLOT}) | grep mount | grep /etc/init/hw/ ; then
@@ -834,28 +901,92 @@ my_print "- $word2" && {
         fi
     fi
     echo 181
-    if $TOOLS/lptools_new --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --super $super_block --get-info | grep "neo_inject" ; then
-        DETECT_NEO_IN_SUPER=true
+    if [[ -n "$FINAL_ACTIVE_SUFFIX" ]] ; then 
+        if $TOOLS/lptools_new --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --super $super_block --get-info | grep "neo_inject" ; then
+            DETECT_NEO_IN_SUPER=true
+        fi
+    else
+        if $TOOLS/lptools_new --super $super_block --get-info | grep "neo_inject" ; then
+            DETECT_NEO_IN_SUPER=true
+        fi
     fi
     echo 12123
-    if $DETECT_NEO_IN_BOOT || $DETECT_NEO_IN_SUPER || $DETECT_NEO_IN_VENDOR_BOOT ; then
-        my_print " "
-        my_print " "
-        my_print "- $word55"
-        my_print "- $word56"
-        my_print "    $word57"
-        my_print "    $word58"
-        if ! volume_selector ; then 
-            remove_dfe_neo $DETECT_NEO_IN_BOOT $DETECT_NEO_IN_SUPER
-            if $DETECT_NEO_IN_VENDOR_BOOT ; then
-                cat "$(find_block_neo -b vendor_boot${CSLOT})" > "$(find_block_neo -b vendor_boot${RCSLOT})"
+
+    for boot_sda in vendor_boot boot; do
+        if [[ "$boot_sda" == "boot" ]] && ! find_block_neo -c -b recovery${CSLOT} ; then
+            continue
+        fi
+
+        if [[ "$boot_sda" == "boot" ]] && ! find_block_neo -c -b recovery ; then
+            continue
+        fi
+        for block in $(find_block_neo -b ${boot_sda}${CSLOT}); do
+
+            basename_block="${boot_sda}${CSLOT}"
+            work_folder="$TMPN/${basename_block}_check_neo_status"
+            row_ramdisk=false
+            $TOOLS/toybox mkdir -pv $work_folder
+            cd "$work_folder"
+            # word27="Не удалось распаковать"
+            $TOOLS/magiskboot unpack -h $block &>$work_folder/log.unpack.boot || abort_neo -e "28.1" -m "$word27 boot($basename_block)" 
+
+            if $TOOLS/toybox grep "RAMDISK_FMT" $work_folder/log.unpack.boot | $TOOLS/toybox grep "raw"; then
+                    if $TOOLS/magiskboot decompress $work_folder/ramdisk.cpio $work_folder/ramdisk.decompress.cpio &>$work_folder/log.decompress.ramdisk ; then
+                        row_ramdisk=true     
+                    else
+                        abort_neo -e 28.2 -m "$word29" # word29="Не получилось декмопресировать ramdisk"
+                    fi  
+                    $TOOLS/toybox mv $work_folder/ramdisk.decompress.cpio $work_folder/ramdisk.cpio
+                    ramdisk_compress_format=$($TOOLS/toybox grep "Detected format:" $work_folder/log.decompress.ramdisk | $TOOLS/toybox sed 's/.*\[\(.*\)\].*/\1/')
             fi
-            if $DETECT_NEO_IN_BOOT ; then
-                cat "$(find_block_neo -b boot${CSLOT})" > "$(find_block_neo -b boot${RCSLOT})"
+
+            if ! [[ -f "$work_folder/ramdisk.cpio" ]] && ! [[ -f "$work_folder/log.unpack.boot" ]]; then
+                cd $work_folder/../
+                $TOOLS/toybox rm -rf $work_folder
+                continue
             fi
-            my_print "- $word59"
+            if [[ -f "$work_folder/ramdisk.cpio" ]]; then
+                # word31="Распаковка ramdsik.cpio"
+                mkdir $work_folder/ramdisk
+                cd $work_folder/ramdisk
+                "$TOOLS"/magiskboot cpio "$work_folder/ramdisk.cpio" extract
+                cd $work_folder
+                for fstab in $(find "$work_folder/ramdisk/" -name "fstab.*"); do
+                    if $TOOLS/toybox grep -w "/system" $fstab | $TOOLS/toybox grep -q "first_stage_mount"; then
+                        if grep -q "/venodr/etc/init/hw" "$fstab" || \
+                            grep -q "/vendor/etc/init/hw" "$fstab" || \
+                            grep -q "/system/etc/init/hw" "$fstab" ; then
+                            DFE_NEO_DETECT_IN_FSTAB=true
+                        fi
+
+
+                    fi
+                done
+            fi
+            cd $work_folder/../
+            $TOOLS/toybox rm -rf $work_folder
+        done
+    done
+    if $DFE_NEO_DETECT_IN_FSTAB && ! $force_start ; then 
+        if $DETECT_NEO_IN_BOOT || $DETECT_NEO_IN_SUPER || $DETECT_NEO_IN_VENDOR_BOOT ; then
             my_print " "
-            exit 0
+            my_print " "
+            my_print "- $word55"
+            my_print "- $word56"
+            my_print "    $word57"
+            my_print "    $word58"
+            if ! volume_selector ; then 
+                remove_dfe_neo $DETECT_NEO_IN_BOOT $DETECT_NEO_IN_SUPER
+                if $DETECT_NEO_IN_VENDOR_BOOT ; then
+                    cat "$(find_block_neo -b vendor_boot${CSLOT})" > "$(find_block_neo -b vendor_boot${RCSLOT})"
+                fi
+                if $DETECT_NEO_IN_BOOT ; then
+                    cat "$(find_block_neo -b boot${CSLOT})" > "$(find_block_neo -b boot${RCSLOT})"
+                fi
+                my_print "- $word59"
+                my_print " "
+                exit 0
+            fi
         fi
     fi
     if [[ $hide_not_encrypted == "ask" ]] ; then
@@ -915,6 +1046,17 @@ my_print "- $word2" && {
             modify_early_mount=false
         fi
     fi
+    if [[ $disable_verity_and_verification == "ask" ]] ; then
+        my_print " "
+        my_print "- $word92"
+        my_print "    $word65"
+        my_print "    $word66"
+        if volume_selector ; then
+            disable_verity_and_verification=true
+        else
+            disable_verity_and_verification=false
+        fi
+    fi
 
     if [[ $zygisk_turn_on == "ask" ]] ; then
         my_print " "
@@ -969,27 +1111,27 @@ my_print "- $word2" && {
     add_init_target_rc_line_boot_complite="on property:sys.boot_completed=1"
 
     if $safety_net_fix ; then
-        add_init_target_rc_line_init+="\n    exec - system system -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_init"
+        add_init_target_rc_line_init+="\n    exec - system system -- /vendor/etc/init/hw/init.sh safetynet_init"
         add_init_target_rc_line_init+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_init"
-        add_init_target_rc_line_init+="\n    exec u:r:su:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_init"
+        add_init_target_rc_line_init+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh safetynet_init"
 
-        add_init_target_rc_line_early_fs+="\n    exec - system system -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_fs"
+        add_init_target_rc_line_early_fs+="\n    exec - system system -- /vendor/etc/init/hw/init.sh safetynet_fs"
         add_init_target_rc_line_early_fs+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_fs"
-        add_init_target_rc_line_early_fs+="\n    exec u:r:su:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_fs"
+        add_init_target_rc_line_early_fs+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh safetynet_fs"
 
         add_init_target_rc_line_postfs+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safatynet_postfs"
 
-        add_init_target_rc_line_boot_complite+="\n    exec - system system -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_boot_complite"
+        add_init_target_rc_line_boot_complite+="\n    exec - system system -- /vendor/etc/init/hw/init.sh safetynet_boot_complite"
         add_init_target_rc_line_boot_complite+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_boot_complite"
-        add_init_target_rc_line_boot_complite+="\n    exec u:r:su:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_boot_complite"
+        add_init_target_rc_line_boot_complite+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh safetynet_boot_complite"
     fi
     if $hide_not_encrypted ; then
-        add_init_target_rc_line_init+="\n    exec - system system -- /vendor/bin/sh /vendor/etc/init/hw/init.sh hide_decrypted"
+        add_init_target_rc_line_init+="\n    exec - system system -- /vendor/etc/init/hw/init.sh hide_decrypted"
         add_init_target_rc_line_init+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh hide_decrypted"
-        add_init_target_rc_line_init+="\n    exec u:r:su:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh hide_decrypted"
+        add_init_target_rc_line_init+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh hide_decrypted"
     fi
     if $zygisk_turn_on ; then
-        add_init_target_rc_line_early_fs+="\n    exec_background u:r:magisk:s0 root root -- /vendor/etc/init/hw/init.sh zygisk_on_$zygisk_turn_on_parm"
+        add_init_target_rc_line_early_fs+="\n    exec_background u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh zygisk_on_$zygisk_turn_on_parm"
     fi
     if $add_custom_deny_list ; then
         add_init_target_rc_line_boot_complite+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh add_deny_list_$add_custom_deny_list_parm"
@@ -1096,11 +1238,13 @@ my_print "- $word71" && {
     my_print "- $word80 $dfe_paterns"
     my_print " "
     my_print " "
-    my_print "- $word81"
-    my_print "- $word82"
-    my_print "- $word83"
-    if ! volume_selector ; then 
-        exit 1
+    if ! $force_start ; then
+        my_print "- $word81"
+        my_print "- $word82"
+        my_print "- $word83"
+        if ! volume_selector ; then 
+            exit 1
+        fi
     fi
 
 }
@@ -1409,13 +1553,15 @@ for boot_sda in vendor_boot boot; do
                     $TOOLS/magiskboot repack $block
                     cat $work_folder/new-boot.img >$block
                 }
-                if ! $ALRADY_DISABLE; then
-                    # word36="Отключение проверки целостности системы"
-                    my_print "- $word36" && {
-                        ALRADY_DISABLE=true
-                        $TOOLS/avbctl --force disable-verification
-                        $TOOLS/avbctl --force disable-verity
-                    }
+                if $disable_verity_and_verification ; then 
+                    if ! $ALRADY_DISABLE; then
+                        # word36="Отключение проверки целостности системы"
+                        my_print "- $word36" && {
+                            ALRADY_DISABLE=true
+                            $TOOLS/avbctl --force disable-verification
+                            $TOOLS/avbctl --force disable-verity
+                        }
+                    fi
                 fi
 
             done

@@ -7,8 +7,13 @@ for file in magisk sqlite3 magisk.db ; do
 done
 
 NEO_RESETPROP(){
+    force_write=false
+    if [ "$1" = "--force" ] ; then
+        force_write=true
+        shift 1
+    fi
     if [ "$1" = resetprop ] ; then
-        if ! [ "$(getprop "$2")" = "" ] ; then
+        if ! [ "$(getprop "$2")" = "" ] || $force_write ; then
             /vendor/etc/init/hw/magisk "$1" "$2" "$3"
         fi
     else
@@ -100,7 +105,7 @@ turn_on_zygisk(){
 case "$1" in
 
     hide_decrypted)
-        NEO_RESETPROP resetprop ro.crypto.state encrypted
+        NEO_RESETPROP --force resetprop ro.crypto.state encrypted
     ;;
 
     zygisk_on*)
@@ -112,20 +117,20 @@ case "$1" in
 
 
     safetynet_init)
-        NEO_RESETPROP resetprop ro.build.type user
-        NEO_RESETPROP resetprop ro.debuggable 0
-        NEO_RESETPROP resetprop ro.secure 1
-        NEO_RESETPROP resetprop ro.boot.flash.locked 1
-        NEO_RESETPROP resetprop ro.boot.verifiedbootstate green
-        NEO_RESETPROP resetprop ro.boot.veritymode enforcing
-        NEO_RESETPROP resetprop ro.boot.vbmeta.device_state locked
-        NEO_RESETPROP resetprop vendor.boot.vbmeta.device_state locked
-        NEO_RESETPROP resetprop ro.build.tags release-keys
-        NEO_RESETPROP resetprop ro.boot.warranty_bit 0
-        NEO_RESETPROP resetprop ro.vendor.boot.warranty_bit 0
-        NEO_RESETPROP resetprop ro.vendor.warranty_bit 0
-        NEO_RESETPROP resetprop ro.warranty_bit 0
-        NEO_RESETPROP resetprop ro.is_ever_orange 0
+        NEO_RESETPROP --force resetprop ro.build.type user
+        NEO_RESETPROP --force resetprop ro.debuggable 0
+        NEO_RESETPROP --force resetprop ro.secure 1
+        NEO_RESETPROP --force resetprop ro.boot.flash.locked 1
+        NEO_RESETPROP --force resetprop ro.boot.verifiedbootstate green
+        NEO_RESETPROP --force resetprop ro.boot.veritymode enforcing
+        NEO_RESETPROP --force resetprop ro.boot.vbmeta.device_state locked
+        NEO_RESETPROP --force resetprop vendor.boot.vbmeta.device_state locked
+        NEO_RESETPROP --force resetprop ro.build.tags release-keys
+        NEO_RESETPROP --force resetprop ro.boot.warranty_bit 0
+        NEO_RESETPROP --force resetprop ro.vendor.boot.warranty_bit 0
+        NEO_RESETPROP --force resetprop ro.vendor.warranty_bit 0
+        NEO_RESETPROP --force resetprop ro.warranty_bit 0
+        NEO_RESETPROP --force resetprop ro.is_ever_orange 0
     ;;
 
     safetynet_fs)
@@ -134,7 +139,7 @@ case "$1" in
         maybe_set_prop resetprop vendor.boot.mode recovery unknown
         maybe_set_prop ro.boot.hwc CN GLOBAL
         maybe_set_prop ro.boot.hwcountry China GLOBAL
-        NEO_RESETPROP resetprop --delete ro.build.selinux
+        NEO_RESETPROP --force resetprop --delete ro.build.selinux
 
         if [ "$(toybox cat /sys/fs/selinux/enforce)" = "0" ]; then
             chmod 640 /sys/fs/selinux/enforce
@@ -151,13 +156,13 @@ case "$1" in
 
 
     safetynet_boot_complite)
-        NEO_RESETPROP resetprop ro.boot.flash.locked 1
-        NEO_RESETPROP resetprop ro.boot.vbmeta.device_state locked
-        NEO_RESETPROP resetprop vendor.boot.verifiedbootstate green
-        NEO_RESETPROP resetprop ro.boot.verifiedbootstate green
-        NEO_RESETPROP resetprop ro.boot.veritymode enforcing
-        NEO_RESETPROP resetprop vendor.boot.vbmeta.device_state locked
-        NEO_RESETPROP resetprop vendor.boot.verifiedbootstate green
+        NEO_RESETPROP --force resetprop ro.boot.flash.locked 1
+        NEO_RESETPROP --force resetprop ro.boot.vbmeta.device_state locked
+        NEO_RESETPROP --force resetprop vendor.boot.verifiedbootstate green
+        NEO_RESETPROP --force resetprop ro.boot.verifiedbootstate green
+        NEO_RESETPROP --force resetprop ro.boot.veritymode enforcing
+        NEO_RESETPROP --force resetprop vendor.boot.vbmeta.device_state locked
+        NEO_RESETPROP --force resetprop vendor.boot.verifiedbootstate green
     ;;
 
     # patch120dynamic)
