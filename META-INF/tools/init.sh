@@ -60,7 +60,6 @@ add_deny_list_func(){
 
 }
 
-
 turn_on_zygisk(){
 
     if [ "$1" = "zygisk_on_first_time_boot" ]; then 
@@ -113,6 +112,9 @@ case "$1" in
     ;;
     add_deny_list*)
         add_deny_list_func "$1"
+    ;;
+    custom_reset_prop*)
+        NEO_RESETPROP --force resetprop "$2" "$3"
     ;;
 
 

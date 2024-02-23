@@ -1104,12 +1104,69 @@ my_print "- $word2" && {
         add_custom_deny_list_parm=$add_custom_deny_list
         add_custom_deny_list=true
     fi
+   
+
+
+
 
     add_init_target_rc_line_init="on init"
     add_init_target_rc_line_early_fs="on early-fs"
     add_init_target_rc_line_postfs="on post-fs-data"
     add_init_target_rc_line_boot_complite="on property:sys.boot_completed=1"
 
+    if [[ -n $custom_reset_prop ]] ; then 
+
+            add_init_target_rc_line_init="on init"
+            add_init_target_rc_line_early_fs="on early-fs"
+            add_init_target_rc_line_postfs="on post-fs-data"
+            add_init_target_rc_line_boot_complite="on property:sys.boot_completed=1"
+
+
+            for PARMS_RESET in $custom_reset_prop ; do  
+                case $PARMS_RESET in 
+                    "--init")
+                        add_init=true ; add_early_fs=false ; add_post_fs_data=false ; add_boot_completed=false
+                        continue
+                    ;;
+                    "--early-fs")
+                        add_init=false ; add_early_fs=true ; add_post_fs_data=false ; add_boot_completed=false
+                        continue
+                    ;;
+                    "--post-fs-data")
+                        add_init=false ; add_early_fs=false ; add_post_fs_data=true ; add_boot_completed=false
+                        continue
+                    ;;
+                    "--boot_completed")
+                        add_init=false ; add_early_fs=false ; add_post_fs_data=false ; add_boot_completed=true
+                        continue
+                    ;;
+                esac
+                if ! $add_init && ! $add_early_fs && ! $add_post_fs_data && ! $add_boot_completed ; then
+                    exit 189
+                fi
+                if echo "$PARMS_RESET" | grep -q "=" ; then
+                    if $add_init ; then 
+                        add_init_target_rc_line_init+="\n    exec - system system -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_init+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_init+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                    elif $add_early_fs ; then 
+                        add_init_target_rc_line_early_fs+="\n    exec - system system -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_early_fs+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_early_fs+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                    elif $add_post_fs_data ; then 
+                        add_init_target_rc_line_postfs+="\n    exec - system system -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_postfs+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_postfs+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                    elif $add_boot_completed ; then 
+                        add_init_target_rc_line_boot_complite+="\n    exec - system system -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_boot_complite+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_boot_complite+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                    fi
+                fi
+            done
+    
+            
+    fi
     if $safety_net_fix ; then
         add_init_target_rc_line_init+="\n    exec - system system -- /vendor/etc/init/hw/init.sh safetynet_init"
         add_init_target_rc_line_init+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_init"
@@ -1225,17 +1282,28 @@ my_print "- $word71" && {
             select_slot_print="$RCSLOT"
         ;;
     esac
+
     # word11="Параметр 'Куда инджектить':"
     my_print "- $word73 $languages"
     my_print "- $word74 ${where_to_inject_auto}${where_to_inject}${select_slot_print}"
     my_print "- $word75 $modify_early_mount"
     my_print "- $word76 $safety_net_fix"
     my_print "- $word77 $hide_not_encrypted"
-    my_print "- zygisk on boot $zygisk_turn_on:$zygisk_turn_on_parm"
-    my_print "- Custom denylist $add_custom_deny_list:$add_custom_deny_list_parm"
+    if [[ -z "$zygisk_turn_on_parm" ]] ; then 
+        my_print "- zygisk on boot: $zygisk_turn_on"
+    else
+        my_print "- zygisk on boot: $zygisk_turn_on/$zygisk_turn_on_parm"
+    fi
+    if [[ -z "$zygisk_turn_on_parm" ]] ; then 
+        my_print "- Custom denylist: $add_custom_deny_list"
+    else
+        my_print "- Custom denylist: $add_custom_deny_list/$add_custom_deny_list_parm"
+    fi   
+    
     my_print "- $word78 $wipe_data"
     my_print "- $word79 $remove_pin"
     my_print "- $word80 $dfe_paterns"
+    my_print "- custom_reset_prop: $custom_reset_prop"
     my_print " "
     my_print " "
     if ! $force_start ; then
@@ -1270,7 +1338,11 @@ my_print "- $word12" && {
 }
 # word14="Создание neo_inject.img раздела"
 my_print "- $word14" && {
-    hardware_boot=$(getprop ro.hardware)
+    if [[ -z "$ro_hardware" ]] ; then 
+        hardware_boot=$(getprop ro.hardware)
+    else
+        hardware_boot="$ro_hardware"
+    fi
     if [ -z "$hardware_boot" ]; then
         hardware_boot=$(getprop ro.boot.hardware)
     fi
@@ -1299,7 +1371,7 @@ my_print "- $word14" && {
                 fi
                 last_init_rc_file_for_write=$file_find
             else    
-                fstab_find="$(grep mount $file_find | grep "late" | sort -u)" 
+                fstab_find="$($TOOLS/toybox grep mount_all $file_find | $TOOLS/toybox grep "\-\-late" | $TOOLS/toybox grep -v "#" | sort -u)" 
                 echo $fstab_find
                 new_path_fstab="$(echo "$fstab_find" | sed "s|[^ ]*fstab[^ ]*|/vendor/etc/init/hw/fstab.$hardware_boot|")"
                 $TOOLS/toybox sed -i "s|$fstab_find|$new_path_fstab|g" "$file_find"
@@ -1328,7 +1400,7 @@ my_print "- $word14" && {
         abort_neo -e 36.2 -m "$word15: $path_original_fstab:$basename_fstab"
     fi
 
-    if $safety_net_fix || $hide_not_encrypted || $add_custom_deny_list || $zygisk_turn_on ; then
+    if $safety_net_fix || $hide_not_encrypted || $add_custom_deny_list || $zygisk_turn_on || [[ -n $custom_reset_prop ]] ; then
         if $add_custom_deny_list || $zygisk_turn_on ; then
             cp $TMPN/unzip/META-INF/tools/magisk.db "$TMPN/neo_inject${CSLOT}/"
             cp $TMPN/unzip/META-INF/tools/denylist.txt "$TMPN/neo_inject${CSLOT}/"
@@ -1350,7 +1422,7 @@ my_print "- $word14" && {
     
 
     if [ -f "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" ]; then
-        $TOOLS/busybox cp -afc "$TMPN/mapper/${name_system_block}${path_original_fstab}" "$TMPN/neo_inject${CSLOT}/$basename_fstab"
+        $TOOLS/busybox cp -afc "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" "$TMPN/neo_inject${CSLOT}/$basename_fstab"
     else
         # word16="Не удалось определить расположение fstab:"
         abort_neo -e 36.1 -m "$word16 $TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" 
@@ -1452,120 +1524,122 @@ fi
 
 
 for boot_sda in vendor_boot boot; do
-    if [[ "$boot_sda" == "boot" ]] && ! find_block_neo -c -b recovery${CSLOT} ; then
+    if [[ "$boot_sda" == "boot" ]] && ! find_block_neo -c -b recovery${CSLOT} recovery ; then
         continue
     else
-        if [[ "$boot_sda" == "boot" ]] && ! find_block_neo -c -b recovery ; then
-            continue
-        else
-            for block in $(find_block_neo -b ${boot_sda}${CSLOT}); do
+        patch_first_stage=false
+        for block in $(find_block_neo -b ${boot_sda}${CSLOT}); do
 
-                basename_block="${boot_sda}${CSLOT}"
-                # word25="Патчинг загрузочного раздела"
-                my_print "- $word25 ${boot_sda}${CSLOT}" && {
-                    work_folder="$TMPN/$basename_block"
-                    row_ramdisk=false
+            basename_block="${boot_sda}${CSLOT}"
+            # word25="Патчинг загрузочного раздела"
+            my_print "- $word25 ${boot_sda}${CSLOT}" && {
+                work_folder="$TMPN/$basename_block"
+                row_ramdisk=false
 
-                    $TOOLS/toybox mkdir -pv $work_folder
+                $TOOLS/toybox mkdir -pv $work_folder
 
-                    cd "$work_folder"
-                }
+                cd "$work_folder"
+            }
 
-                # Распковка блока
-                # word26="Распаковка"
-                my_print "- $word26 $basename_block" && {
-                    # word27="Не удалось распаковать"
-                    $TOOLS/magiskboot unpack -h $block &>$work_folder/log.unpack.boot || abort_neo -e "28.1" -m "$word27 boot($basename_block)" 
+            # Распковка блока
+            # word26="Распаковка"
+            my_print "- $word26 $basename_block" && {
+                # word27="Не удалось распаковать"
+                $TOOLS/magiskboot unpack -h $block &>$work_folder/log.unpack.boot || abort_neo -e "28.1" -m "$word27 boot($basename_block)" 
 
-                    if $TOOLS/toybox grep "RAMDISK_FMT" $work_folder/log.unpack.boot | $TOOLS/toybox grep "raw"; then
-                        # word28="Ramdisk сжат, декомпрессия..."
-                        my_print "- $word28" && {
-                            $TOOLS/magiskboot decompress $work_folder/ramdisk.cpio $work_folder/ramdisk.decompress.cpio &>$work_folder/log.decompress.ramdisk &&
-                                row_ramdisk=true ||
-                                abort_neo -e 28.2 -m "$word29" # word29="Не получилось декмопресировать ramdisk"
-                            $TOOLS/toybox mv $work_folder/ramdisk.decompress.cpio $work_folder/ramdisk.cpio
-                            ramdisk_compress_format=$($TOOLS/toybox grep "Detected format:" $work_folder/log.decompress.ramdisk | $TOOLS/toybox sed 's/.*\[\(.*\)\].*/\1/')
-                        }
-
-                    fi
-
-                    if ! [[ -f "$work_folder/ramdisk.cpio" ]] && ! [[ -f "$work_folder/log.unpack.boot" ]]; then
-                        # word30="Файл Ramdisk и файл журнала не найдены"
-                        my_print "- $word30"
-                        continue
-                    fi
-                }
-
-                if [[ -f "$work_folder/ramdisk.cpio" ]]; then
-                    # word31="Распаковка ramdsik.cpio"
-                    my_print "- $word31" && {
-                        mkdir $work_folder/ramdisk
-                        cd $work_folder/ramdisk
-                        "$TOOLS"/magiskboot cpio "$work_folder/ramdisk.cpio" extract
-                        cd $work_folder
-                        for fstab in $(find "$work_folder/ramdisk/" -name "fstab.*"); do
-                            if $TOOLS/toybox grep -w "/system" $fstab | $TOOLS/toybox grep -q "first_stage_mount"; then
-                                # word32="Патчинг fstab для first_stage"
-                                my_print "- $word32 $(basename "$fstab")" && {
-                                    grep -q "/venodr/etc/init/hw" "$fstab" && {
-                                        sed -i '/\/venodr\/etc\/init\/hw/d' "$fstab"
-                                    }
-                                    grep -q "/vendor/etc/init/hw" "$fstab" && {
-                                        sed -i '/\/vendor\/etc\/init\/hw/d' "$fstab"
-                                    }
-                                    grep -q "/system/etc/init/hw" "$fstab" && {
-                                        sed -i '/\/system\/etc\/init\/hw/d' "$fstab"
-                                    }
-                                    [[ -n "$(tail -n 1 "$fstab")" ]] && echo "" >>"$fstab"
-                                    if $FLASH_IN_SUPER; then
-                                        if $TOOLS/toybox grep -q "slotselect" $fstab; then
-                                            echo "neo_inject    /vendor/etc/init/hw ext4    ro,discard  slotselect,logical,first_stage_mount" >>$fstab
-                                        else
-                                            echo "neo_inject    /vendor/etc/init/hw ext4    ro,discard  logical,first_stage_mount" >>$fstab
-                                        fi
-                                    else
-                                        echo "${path_to_inject}${where_to_inject}${RCSLOT}    /vendor/etc/init/hw ext4    ro  first_stage_mount" >>$fstab
-                                    fi
-
-                                    $TOOLS/magiskboot cpio "$work_folder/ramdisk.cpio" "add 777 ${fstab//$work_folder\/ramdisk\//} $fstab"
-                                }
-
-                            fi
-                        done
+                if $TOOLS/toybox grep "RAMDISK_FMT" $work_folder/log.unpack.boot | $TOOLS/toybox grep "raw"; then
+                    # word28="Ramdisk сжат, декомпрессия..."
+                    my_print "- $word28" && {
+                        $TOOLS/magiskboot decompress $work_folder/ramdisk.cpio $work_folder/ramdisk.decompress.cpio &>$work_folder/log.decompress.ramdisk &&
+                            row_ramdisk=true ||
+                            abort_neo -e 28.2 -m "$word29" # word29="Не получилось декмопресировать ramdisk"
+                        $TOOLS/toybox mv $work_folder/ramdisk.decompress.cpio $work_folder/ramdisk.cpio
+                        ramdisk_compress_format=$($TOOLS/toybox grep "Detected format:" $work_folder/log.decompress.ramdisk | $TOOLS/toybox sed 's/.*\[\(.*\)\].*/\1/')
                     }
-                else
-                    # word33="Ramdisk.cpio файл не найден, пропуск..."
-                    my_print "- $word33"
-                    cd ../..
-                    $TOOLS/toybox rm -rf $work_folder
+
+                fi
+
+                if ! [[ -f "$work_folder/ramdisk.cpio" ]] && ! [[ -f "$work_folder/log.unpack.boot" ]]; then
+                    # word30="Файл Ramdisk и файл журнала не найдены"
+                    my_print "- $word30"
                     continue
                 fi
-                if $row_ramdisk; then
-                    # word34="Запаковка файлов ramdisk обратно в:"
-                    my_print "- $word34 $ramdisk_compress_format"
-                    "$TOOLS"/magiskboot compress="${ramdisk_compress_format}" "$work_folder/ramdisk.cpio" "$work_folder/ramdisk.compress.cpio" || abort_neo -e 29.1 -m "$word41" # word41="Не удалось компресировать ramdisk"
-                    rm -f "$work_folder/ramdisk.cpio"
-                    mv "$work_folder/ramdisk.compress.cpio" "$work_folder/ramdisk.cpio"
-                fi
-                cd $work_folder
-                # word35="Ребилт и установка"
+            }
+
+            if [[ -f "$work_folder/ramdisk.cpio" ]]; then
+                # word31="Распаковка ramdsik.cpio"
+                my_print "- $word31" && {
+                    mkdir $work_folder/ramdisk
+                    cd $work_folder/ramdisk
+                    "$TOOLS"/magiskboot cpio "$work_folder/ramdisk.cpio" extract
+                    cd $work_folder
+                    for fstab in $(find "$work_folder/ramdisk/" -name "fstab.*"); do
+                        if $TOOLS/toybox grep -w "/system" $fstab | $TOOLS/toybox grep -q "first_stage_mount"; then
+                            # word32="Патчинг fstab для first_stage"
+                            my_print "- $word32 $(basename "$fstab")" && {
+                                grep -q "/venodr/etc/init/hw" "$fstab" && {
+                                    sed -i '/\/venodr\/etc\/init\/hw/d' "$fstab"
+                                }
+                                grep -q "/vendor/etc/init/hw" "$fstab" && {
+                                    sed -i '/\/vendor\/etc\/init\/hw/d' "$fstab"
+                                }
+                                grep -q "/system/etc/init/hw" "$fstab" && {
+                                    sed -i '/\/system\/etc\/init\/hw/d' "$fstab"
+                                }
+                                [[ -n "$(tail -n 1 "$fstab")" ]] && echo "" >>"$fstab"
+                                if $FLASH_IN_SUPER; then
+                                    if $TOOLS/toybox grep -q "slotselect" $fstab; then
+                                        echo "neo_inject    /vendor/etc/init/hw ext4    ro,discard  slotselect,logical,first_stage_mount" >>$fstab
+                                        patch_first_stage=true
+                                    else
+                                        echo "neo_inject    /vendor/etc/init/hw ext4    ro,discard  logical,first_stage_mount" >>$fstab
+                                        patch_first_stage=true
+                                    fi
+                                else
+                                    echo "${path_to_inject}${where_to_inject}${RCSLOT}    /vendor/etc/init/hw ext4    ro  first_stage_mount" >>$fstab
+                                    patch_first_stage=true
+                                fi
+
+                                $TOOLS/magiskboot cpio "$work_folder/ramdisk.cpio" "add 777 ${fstab//$work_folder\/ramdisk\//} $fstab"
+                            }
+
+                        fi
+                    done
+                }
+            else
+                # word33="Ramdisk.cpio файл не найден, пропуск..."
+                my_print "- $word33"
+                cd ../..
+                $TOOLS/toybox rm -rf $work_folder
+                continue
+            fi
+            if $row_ramdisk; then
+                # word34="Запаковка файлов ramdisk обратно в:"
+                my_print "- $word34 $ramdisk_compress_format"
+                "$TOOLS"/magiskboot compress="${ramdisk_compress_format}" "$work_folder/ramdisk.cpio" "$work_folder/ramdisk.compress.cpio" || abort_neo -e 29.1 -m "$word41" # word41="Не удалось компресировать ramdisk"
+                rm -f "$work_folder/ramdisk.cpio"
+                mv "$work_folder/ramdisk.compress.cpio" "$work_folder/ramdisk.cpio"
+            fi
+            cd $work_folder
+            # word35="Ребилт и установка"
+            if $patch_first_stage ; then 
                 my_print "- $word35" && {
                     $TOOLS/magiskboot repack $block
                     cat $work_folder/new-boot.img >$block
                 }
-                if $disable_verity_and_verification ; then 
-                    if ! $ALRADY_DISABLE; then
-                        # word36="Отключение проверки целостности системы"
-                        my_print "- $word36" && {
-                            ALRADY_DISABLE=true
-                            $TOOLS/avbctl --force disable-verification
-                            $TOOLS/avbctl --force disable-verity
-                        }
-                    fi
+            fi
+            if $disable_verity_and_verification ; then 
+                if ! $ALRADY_DISABLE; then
+                    # word36="Отключение проверки целостности системы"
+                    my_print "- $word36" && {
+                        ALRADY_DISABLE=true
+                        $TOOLS/avbctl --force disable-verification
+                        $TOOLS/avbctl --force disable-verity
+                    }
                 fi
+            fi
 
-            done
-        fi
+        done
     fi
 done
 
