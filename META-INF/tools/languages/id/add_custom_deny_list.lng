@@ -1,0 +1,9 @@
+    #--Indonesian--#
+    # Opsi Daftar Ditolak:
+    # Opsi ini menulis paket aplikasi ke `denylist` saat startup. Hanya berfungsi jika `Magisk` terinstal.
+    # Anda dapat menyesuaikan file konfigurasi di `.zip/META-INF/tools/denylist.txt` secara manual.
+    # Opsi yang tersedia:  
+    # `false` - nonaktifkan
+    # `ask` - tanya saat instalasi,
+    # `first_time_boot` - skrip akan dijalankan hanya sekali selama boot pertama, pencatatan penggunaan pertama disimpan di memori Magisk,
+    # `always_on_boot` - skrip akan berjalan setiap saat selama setiap boot sistem.

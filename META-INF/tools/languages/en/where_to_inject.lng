@@ -1,0 +1,6 @@
+    #--English--#
+    # Configuration Section: Injection Options
+    #  `where_to_inject`: This option determines where the module will be injected. Choose one:
+    #      `super`: The module will be flashed to the current slot alongside system, vendor, etc.
+    #      `vendor_boot`: The module will be flashed to the inactive slot vendor_boot (Not available for A-only devices).
+    #      `boot`: The module will be flashed to the inactive slot boot (Not available for A-only devices).

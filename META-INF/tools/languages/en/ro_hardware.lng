@@ -1,0 +1,4 @@
+    #--English--#
+    # Set up this option if you encounter error 36.1 fstab not found. This may occur if the ro.hardware variable differs between TWRP and the running system.
+    # You can check this in the TWRP terminal by entering the command `getprop ro.hardware`, and in the running system through any terminal. If the props are different, enter the value displayed in the running system.
+    # Otherwise, leave the value blank.

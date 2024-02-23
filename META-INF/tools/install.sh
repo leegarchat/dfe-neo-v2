@@ -33,14 +33,14 @@ fi
 
 
 
-if ! [ -f "$TMPN/unzip/META-INF/tools/languages/$languages.sh" ] ; then
+if ! [ -f "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" ] ; then
     my_print "- $languages.sh language file not found. English will be used"
     languages=en
-    ! [ -f "$TMPN/unzip/META-INF/tools/languages/$languages.sh" ] && {
+    ! [ -f "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" ] && {
         abort_neo -e "23.27" -m "English language file not found, WHAT THE FUCK????"
     }
 fi
-source "$TMPN/unzip/META-INF/tools/languages/$languages.sh" || abort_neo -e "23.31" -m "Failed to read language file"
+source "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" || abort_neo -e "23.31" -m "Failed to read language file"
 
 
 

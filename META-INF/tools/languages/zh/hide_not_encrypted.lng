@@ -1,0 +1,3 @@
+    #--俄语--#
+    # 此选项允许隐藏 /data 未加密的功能，仅在 selinux 未强制执行或安装了 Magisk 或 KernelSU 的情况下有效。
+    # 可用选项为 false、true、ask

@@ -1,0 +1,4 @@
+    #--Indonesian--#
+    # Opsi ini menentukan apakah, selain substitusi fstab --late, juga harus ada substitusi di peluncuran --early init saat memasang partisi dari fstab. --early mount mencakup semua partisi kecuali yang memiliki fisrt_stage_mount dan latemount flags.
+    # Secara default, diatur sebagai false.
+    # Jika diatur sebagai `ask`, maka skrip akan meminta pengguna untuk memilih opsi saat memasang.

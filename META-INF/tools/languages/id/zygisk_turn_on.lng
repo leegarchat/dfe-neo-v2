@@ -1,0 +1,8 @@
+    #--Indonesian--#
+    # Opsi Aktifkan Zygisk:
+    # Opsi ini secara paksa mengaktifkan mode `zygisk` saat startup perangkat, bahkan jika `Magisk` diinstal untuk pertama kalinya.
+    # Opsi yang tersedia: 
+    # `false` - nonaktifkan
+    # `ask` - tanya saat instalasi,
+    # `first_time_boot` - skrip akan dijalankan hanya sekali selama boot pertama, pencatatan penggunaan pertama disimpan di memori Magisk,
+    # `always_on_boot` - skrip akan berjalan setiap saat selama setiap boot sistem.

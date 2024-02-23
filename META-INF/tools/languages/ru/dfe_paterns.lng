@@ -1,0 +1,14 @@
+    #--Русский--#
+    # Блок настройки для удаления или замены паттернов в fstab. Оставьте по умолчанию, если не знаете для чего вам это нужно.
+    #   `-m` указывает строку точки монтирования, в которой нужно удалить паттерны. Например, `-m /data`. После этого флага нужно указать `-r и/или -p`.
+    #   `-r` указывает, какие паттерны нужно удалить. Паттерны будут удалены до запятой или пробела. Например:
+    #        /.../userdata	/data	f2fs	noatime,....,inlinecrypt	wait,....,fileencryption=aes-256-xts:aes-256-cts:v2,....,fscompress
+    #        с `-m /data -r fileencryption= inlinecrypt` будет удалено fileencryption=aes-256-xts:aes-256-cts:v2. Получится строка:
+    #        /.../userdata	/data	f2fs	noatime,....	wait,....,....,fscompress
+    #   `-p` указывает, какие паттерны нужно заменить. Например, `-m /data -p inlinecrypt--to--ecrypt`. Получится следующее:
+    #        /.../userdata	/data	f2fs	noatime,....,ecrypt	wait,....,fileencryption=aes-256-xts:aes-256-cts:v2,....,fscompress
+    #        Можно указать несколько параметров `-p inlinecrypt--to--ecrypt fileencryption--to--notencryption`
+    #   `-v` При указании этого флага, все строки в fstab, начинающиеся с `overlay`, будут закомментированы, тем самым отключив системный overlay от производителя. Для ощущения эффекта установите true для опции modify_early_mount.
+    #   Пример заполнения:
+    #        "-m /data -p fileencryption--to--notencrypteble ice--to--not-ice -r forceencrypt= -m /system -p ro--to--rw -m /metadata -r keydirectory="
+    #        Значение по умолчанию: "-m /data -r fileencryption= forcefdeorfbe= encryptable= forceencrypt= metadata_encryption= keydirectory= inlinecrypt quota wrappedkey"

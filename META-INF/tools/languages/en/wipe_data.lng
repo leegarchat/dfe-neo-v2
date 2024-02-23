@@ -1,0 +1,3 @@
+    #--English--#
+    # Set to `true` to wipe data during installation, `false` otherwise
+    # Set to `ask` to prompt the user during installation

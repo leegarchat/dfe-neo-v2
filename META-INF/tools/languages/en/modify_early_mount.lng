@@ -1,0 +1,4 @@
+    #--English--#
+    # This option specifies whether, in addition to --late fstab substitution, there should also be substitution in the --early init launch when mounting partitions from fstab. --early mount includes all partitions except those with fisrt_stage_mount and latemount flags.
+    # By default, it is set to false.
+    # If set to `ask`, the script will prompt the user to choose an option during installation.

@@ -1,0 +1,7 @@
+    #--俄语--#
+    # *** 此选项仅在安装了 Magisk/KernelSu 或您的 selinux=premisive 时才有效
+    # 定制属性将在指定的阶段设置
+    # 使用示例：
+    # `custom_reset_prop="--init my.prop=value my.prop2=value my.prop3=value --early-fs my.prop=value my.prop2=value my.prop3=value"` 等等
+    # 可用的阶段：init: `--init`、`--early-fs`、`--post-fs-data`、`--boot_completed`
+    # 否则，请留空

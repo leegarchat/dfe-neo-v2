@@ -1,0 +1,3 @@
+    #--Indonesian--#
+    # Opsi ini memungkinkan untuk menyembunyikan ketidakhadiran enkripsi pada /data, hanya berfungsi jika selinux tidak diatur ke mode enforcing, juga berfungsi jika Magisk atau KernelSU terpasang
+    # Pilihan yang tersedia adalah false, true, ask

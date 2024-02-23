@@ -1,0 +1,14 @@
+    #--俄语--#
+    # 用于删除或替换 fstab 中模式的配置块。如果不知道需要此选项的原因，请保留默认设置。
+    # `-m` 指定要删除模式的挂载点字符串。例如，`-m /data`。然后在此标志后指定 `-r` 和/或 `-p`。
+    # `-r` 指定要删除的模式。模式将删除到逗号或空格。例如：
+    #        /.../userdata	/data	f2fs	noatime,....,inlinecrypt	wait,....,fileencryption=aes-256-xts:aes-256-cts:v2,....,fscompress
+    #        使用 `-m /data -r fileencryption= inlinecrypt` 将删除 fileencryption=aes-256-xts:aes-256-cts:v2。结果为：
+    #        /.../userdata	/data	f2fs	noatime,....	wait,....,....,fscompress
+    # `-p` 指定要替换的模式。例如，`-m /data -p inlinecrypt--to--ecrypt`。结果为：
+    #        /.../userdata	/data	f2fs	noatime,....,ecrypt	wait,....,fileencryption=aes-256-xts:aes-256-cts:v2,....,fscompress
+    #        可以指定多个参数 `-p inlinecrypt--to--ecrypt fileencryption--to--notencryption`
+    # `-v` 当此标志设置时，所有以 `overlay` 开头的 fstab 行都将被注释，从而禁用制造商的系统覆盖。为了产生效果，请在 `modify_early_mount` 选项中设置为 true。
+    # 示例填写：
+    #        "-m /data -p fileencryption--to--notencrypteble ice--to--not-ice -r forceencrypt= -m /system -p ro--to--rw -m /metadata -r keydirectory="
+    #        默认值："-m /data -r fileencryption= forcefdeorfbe= encryptable= forceencrypt= metadata_encryption= keydirectory= inlinecrypt quota wrappedkey"

@@ -1,0 +1,6 @@
+    #--English--#
+    # Magisk Installation Option
+    #  `magisk`: Specify the version of Magisk for installation, or leave it empty.
+    #      Available versions: Magisk-v27.0, Magisk-v26.4-kitsune-2, Magisk-v26.4, MagiskDelta-v26.4.
+    #      Example: magisk Magisk-v27.0
+    #      To install Magisk from the same directory as neo.zip, prefix the version with "EXT:", like "EXT:Magisk-v24.3.zip".

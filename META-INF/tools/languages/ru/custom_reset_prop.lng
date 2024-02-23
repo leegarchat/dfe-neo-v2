@@ -1,0 +1,7 @@
+    #--Русский--#
+    # *** Опция будет работать только если установлен Magisk/KernelSu или если у вас slinux=premisive
+    # Кастомные пропы, будут заданы на том этапе на котором вы прописали
+    # Пример использования: 
+    # `custom_reset_prop="--init my.prop=value my.prop2=value my.prop3=value --early-fs my.prop=value my.prop2=value my.prop3=value"` и так далее
+    # Доступтные этапы init: `--init`, `--early-fs`, `--post-fs-data`, `--boot_completed`
+    # В ином случае оставьте пустым

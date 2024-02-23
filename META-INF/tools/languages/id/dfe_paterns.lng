@@ -1,0 +1,14 @@
+    #--Indonesian--#
+    # Blok konfigurasi untuk menghapus atau mengganti pola dalam fstab. Biarkan sebagai default jika Anda tidak yakin tujuannya.
+    #   `-m` menentukan baris titik pemasangan untuk menghapus pola. Misalnya, `-m /data`. Setelah bendera ini, Anda perlu menentukan `-r dan/atau -p`.
+    #   `-r` menentukan pola mana yang akan dihapus. Pola akan dihapus hingga koma atau spasi. Misalnya:
+    #        /.../userdata	/data	f2fs	noatime,....,inlinecrypt	wait,....,fileencryption=aes-256-xts:aes-256-cts:v2,....,fscompress
+    #        dengan `-m /data -r fileencryption= inlinecrypt`, fileencryption=aes-256-xts:aes-256-cts:v2 akan dihapus. Menghasilkan baris:
+    #        /.../userdata	/data	f2fs	noatime,....	wait,....,....,fscompress
+    #   `-p` menentukan pola mana yang akan diganti. Misalnya, `-m /data -p inlinecrypt--to--ecrypt`. Menghasilkan:
+    #        /.../userdata	/data	f2fs	noatime,....,ecrypt	wait,....,fileencryption=aes-256-xts:aes-256-cts:v2,....,fscompress
+    #        Anda dapat menentukan beberapa parameter `-p inlinecrypt--to--ecrypt fileencryption--to--notencryption`
+    #   `-v` Ketika bendera ini ditentukan, semua baris dalam fstab yang dimulai dengan `overlay` akan dicomment, efektif menonaktifkan overlay sistem dari produsen. Untuk merasakan efeknya, atur true untuk opsi modify_early_mount.
+    #   Contoh pengisian:
+    #        "-m /data -p fileencryption--to--notencrypteble ice--to--not-ice -r forceencrypt= -m /system -p ro--to--rw -m /metadata -r keydirectory="
+    #        Nilai default: "-m /data -r fileencryption= forcefdeorfbe= encryptable= forceencrypt= metadata_encryption= keydirectory= inlinecrypt quota wrappedkey"

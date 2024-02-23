@@ -1,0 +1,4 @@
+    #--Indonesian--#
+    # Atur opsi ini jika Anda mengalami kesalahan 36.1 fstab tidak ditemukan. Ini dapat terjadi jika variabel ro.hardware berbeda antara TWRP dan sistem yang berjalan.
+    # Anda dapat memeriksa ini di terminal TWRP dengan memasukkan perintah `getprop ro.hardware`, dan di sistem yang berjalan melalui terminal apa pun. Jika props berbeda, masukkan nilai yang ditampilkan di sistem yang sedang berjalan.
+    # Jika tidak, biarkan nilai kosong.

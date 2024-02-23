@@ -1,0 +1,6 @@
+    #--俄语--#
+    # 安装 Magisk 选项
+    #  `magisk`: 指定要安装的 Magisk 版本或留空。
+    #      可用版本：Magisk-v27.0、Magisk-v26.4-kitsune-2、Magisk-v26.4、MagiskDelta-v26.4。
+    #      示例：magisk Magisk-v27.0
+    #      要从与 neo.zip 相同的目录安装 Magisk，请添加前缀 "EXT:"，例如 "EXT:Magisk-v24.3.zip"。

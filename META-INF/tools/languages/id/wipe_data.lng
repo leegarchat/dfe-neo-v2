@@ -1,0 +1,3 @@
+    #--Indonesian--#
+    # Atur ke `true` untuk menghapus data selama instalasi, `false` jika tidak
+    # Atur ke `ask` untuk meminta pengguna selama instalasi
