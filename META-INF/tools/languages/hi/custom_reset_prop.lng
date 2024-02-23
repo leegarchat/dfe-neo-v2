@@ -1,0 +1,7 @@
+    #--रूसी--#
+    # *** यह विकल्प केवल तभी काम करेगा अगर Magisk/KernelSu स्थापित है या यदि आपके पास slinux=premisive है
+    # कस्टम प्रॉपर्टीज, जो आपने सेट किए हैं, उसी स्टेज पर सेट किए जाएंगे जिस स्टेज पर आपने उन्हें सेट किया है
+    # उपयोग का उदाहरण: 
+    # `custom_reset_prop="--init my.prop=value my.prop2=value my.prop3=value --early-fs my.prop=value my.prop2=value my.prop3=value"` और इसी तरह
+    # उपलब्ध इनिशिएशन स्टेज: `--init`, `--early-fs`, `--post-fs-data`, `--boot_completed`
+    # अन्यथा खाली छोड़ दें

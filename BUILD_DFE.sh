@@ -54,7 +54,7 @@ done <"$WORK_DIR/tmp/CONFIG"
 
 
 cd $WORK_DIR/$FOLDER
-for sortlanguage in ru ; do 
+for sortlanguage in ru en id zh id ; do 
     case $sortlanguage in 
         en)
             language=english-language
@@ -67,6 +67,9 @@ for sortlanguage in ru ; do
         ;;
         zh)
             language=chinese-language
+        ;;
+        hi)
+            language=hindi-language
         ;;
     esac
     change_langues $sortlanguage
