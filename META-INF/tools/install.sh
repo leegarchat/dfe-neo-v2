@@ -301,7 +301,7 @@ make_img() {
     done
     }
     wait
- 
+  
     $TOOLS/make_ext4fs -J -T 1230764400 \
             -S "${FILE_CONTEXTS_FILE}" \
             -l "$($TOOLS/busybox du -sb "${TARGET_DIR}" | $TOOLS/busybox awk '{print int($1*2)}')" \
