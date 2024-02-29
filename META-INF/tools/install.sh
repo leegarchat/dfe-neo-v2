@@ -55,7 +55,13 @@ get_real_link(){
 
 }
 my_print() {
+<<<<<<< HEAD
     $SYS_STATUS && {
+=======
+    if [[ -n "$KSU" ]] && $KSU ; then
+        ui_print "$@"
+    elif $SYS_STATUS ; then
+>>>>>>> 4f75f82 (Update update_partition and fix my_print)
         echo -e "$@"
     } || {
         local input_message_ui="$@"
@@ -470,15 +476,23 @@ grep_cmdline() {
 update_partitions(){
     my_print "- $word49"
     BOOTCTL_SUPPORT=false
+<<<<<<< HEAD
     $TOOLS/bootctl
     boot_ct_eror=$?
     if [[ "$boot_ct_eror" == "64" ]] ; then
+=======
+    if $TOOLS/bootctl get-current-slot ; then
+>>>>>>> 4f75f82 (Update update_partition and fix my_print)
         BOOTCTL_SUPPORT=true
     fi
     if $BOOTCTL_SUPPORT ; then
         SLOTCURRENT=$($TOOLS/bootctl get-current-slot)
     else
+<<<<<<< HEAD
         SLOTCURRENT="$CSLOT"
+=======
+        SLOTCURRENT=$CSLOT
+>>>>>>> 4f75f82 (Update update_partition and fix my_print)
     fi
 
     if [ -z "$SLOTCURRENT" ] ; then 
