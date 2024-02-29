@@ -10,7 +10,8 @@ magisk=false
 where_to_inject=false
 where_to_inject_auto=""
 MAGISK_ZIP=""
-NEO_VERSION="DFE NEO 2.4.6"
+NEO_VERSION="DFE NEO 2.5.x"
+
 
 if [ -n "$EXEMPLE_VERSION" ] ; then
     NEO_VERSION="DFE-NEO $EXEMPLE_VERSION"
@@ -75,17 +76,17 @@ get_real_link(){
 
 }
 my_print() {
-    if [[ -n "$KSU" ]] && $KSU ; then
-        ui_print "$@"
-    elif $SYS_STATUS ; then
-        echo -e "$@"
-    elif ! $SYS_STATUS ; then
-        local input_message_ui="$@"
-        local IFS=$'\n'
-        while read -r line_print; do
-            echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
-        done <<<"$input_message_ui"
-    fi
+    case $WHEN_INSTALLING in
+        kernelsu)
+            ui_print "$1"
+        ;;
+        magiskapp)
+            echo -e "$1"
+        ;;
+        recovery)
+            echo -e "ui_print $1\nui_print" >>"/proc/self/fd/$ZIPARG2"
+        ;;
+    esac
 }
 export -f my_print
 
