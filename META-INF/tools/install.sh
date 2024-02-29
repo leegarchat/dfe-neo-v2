@@ -76,17 +76,17 @@ get_real_link(){
 
 }
 my_print() {
-    case $WHEN_INSTALLING in
-        kernelsu)
-            ui_print "$1"
-        ;;
-        magiskapp)
-            echo -e "$1"
-        ;;
-        recovery)
-            echo -e "ui_print $1\nui_print" >>"/proc/self/fd/$ZIPARG2"
-        ;;
-    esac
+    if [[ -n "$KSU" ]] && $KSU ; then
+        ui_print "$@"
+    elif $SYS_STATUS ; then
+        echo -e "$@"
+    elif ! $SYS_STATUS ; then
+        local input_message_ui="$@"
+        local IFS=$'\n'
+        while read -r line_print; do
+            echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
+        done <<<"$input_message_ui"
+    fi
 }
 export -f my_print
 
@@ -495,9 +495,13 @@ update_partitions(){
     BOOTCTL_SUPPORT=false
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     $TOOLS/bootctl
     boot_ct_eror=$?
     if [[ "$boot_ct_eror" == "64" ]] ; then
+=======
+    if $TOOLS/bootctl get-current-slot ; then
+>>>>>>> 4f75f82 (Update update_partition and fix my_print)
 =======
     if $TOOLS/bootctl get-current-slot ; then
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
@@ -511,7 +515,11 @@ update_partitions(){
     else
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         SLOTCURRENT="$CSLOT"
+=======
+        SLOTCURRENT=$CSLOT
+>>>>>>> 4f75f82 (Update update_partition and fix my_print)
 =======
         SLOTCURRENT=$CSLOT
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
@@ -543,7 +551,11 @@ update_partitions(){
             ;;
         esac
     else
+<<<<<<< HEAD
         exit 14
+=======
+    exit 14
+>>>>>>> 4f75f82 (Update update_partition and fix my_print)
     fi
 
     for part in /dev/block/mapper/* ; do
