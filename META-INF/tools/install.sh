@@ -469,7 +469,15 @@ grep_cmdline() {
 }
 update_partitions(){
     my_print "- $word49"
-    SLOTCURRENT=$($TOOLS/bootctl get-current-slot)
+    BOOTCTL_SUPPORT=false
+    if $TOOLS/bootctl get-current-slot ; then
+        BOOTCTL_SUPPORT=true
+    fi
+    if $BOOTCTL_SUPPORT ; then
+        SLOTCURRENT=$($TOOLS/bootctl get-current-slot)
+    else
+        SLOTCURRENT=$CSLOT
+    fi
 
     if [ -z "$SLOTCURRENT" ] ; then 
         case $CSLOT in 
@@ -480,22 +488,21 @@ update_partitions(){
                 SLOTCURRENT=1
             ;;
         esac 
-
     fi
 
     if [ -n "$SLOTCURRENT" ] ; then 
-    case "$SLOTCURRENT" in
-        0) 
-        SUFFIXCURRENT="_a"
-        SUFFIXINCURRENT="_b"
-        ;;
-        1) 
-        SUFFIXCURRENT="_b"
-        SUFFIXINCURRENT="_a"
-        ;;
-    esac
+        case "$SLOTCURRENT" in
+            0) 
+            SUFFIXCURRENT="_a"
+            SUFFIXINCURRENT="_b"
+            ;;
+            1) 
+            SUFFIXCURRENT="_b"
+            SUFFIXINCURRENT="_a"
+            ;;
+        esac
     else
-    exit 1
+    exit 14
     fi
 
     for part in /dev/block/mapper/* ; do
@@ -681,24 +688,27 @@ update_partitions(){
             # my_print 3
             mount $TMPN/cmdline_new2 /proc/cmdline
         }
-    for part_link_to_slot in $(find /dev/block -name by-name) ; do
-    #   my_print "$part_link_to_slot"
-    echo 1
-        for files_in_blockdev in $part_link_to_slot/*$SUFFIXCURRENT ; do
-        # my_print "$files_in_blockdev"
-         echo 2
-        files_in_blockdev_suff=${files_in_blockdev%"$SUFFIXCURRENT"*}
-        #   my_print "$files_in_blockdev_suff"
-        if [ -h $files_in_blockdev_suff ] ; then
-        #   my_print "- rm -rf $files_in_blockdev_suff " 
-            echo  "$(basename $files_in_blockdev_suff)$FINAL_ACTIVE_SUFFIX" $files_in_blockdev_suff
-            rm -rf $files_in_blockdev_suff 
-            ln -sf "$(basename $files_in_blockdev_suff)$FINAL_ACTIVE_SUFFIX" $files_in_blockdev_suff
-        fi
-        done
+        for part_link_to_slot in $(find /dev/block -name by-name) ; do
+        #   my_print "$part_link_to_slot"
+        echo 1
+            for files_in_blockdev in $part_link_to_slot/*$SUFFIXCURRENT ; do
+            # my_print "$files_in_blockdev"
+            echo 2
+            files_in_blockdev_suff=${files_in_blockdev%"$SUFFIXCURRENT"*}
+            #   my_print "$files_in_blockdev_suff"
+            if [ -h $files_in_blockdev_suff ] ; then
+            #   my_print "- rm -rf $files_in_blockdev_suff " 
+                echo  "$(basename $files_in_blockdev_suff)$FINAL_ACTIVE_SUFFIX" $files_in_blockdev_suff
+                rm -rf $files_in_blockdev_suff 
+                ln -sf "$(basename $files_in_blockdev_suff)$FINAL_ACTIVE_SUFFIX" $files_in_blockdev_suff
+            fi
+            done
 
-    done
-    $TOOLS/bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
+        done
+        if $BOOTCTL_SUPPORT ; then
+            $TOOLS/bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
+        fi
+    
     fi
 
     return 0 
