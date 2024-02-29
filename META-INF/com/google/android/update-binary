@@ -3,7 +3,11 @@
 export ZIPARG1="$1" 
 export ZIPARG2="$2" 
 <<<<<<< HEAD
+<<<<<<< HEAD
 export ZIPARG3="$3"
+=======
+export ZIPARG3="$3" 
+>>>>>>> 915b19b (first test kernelsuapp/magiskapp 2.5.x)
 =======
 export ZIPARG3="$3" 
 >>>>>>> 915b19b (first test kernelsuapp/magiskapp 2.5.x)
