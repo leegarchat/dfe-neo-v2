@@ -54,70 +54,16 @@ get_real_link(){
 
 
 }
-
-my_out_print(){
-        
-    ALL_WORDS="$1"
-    ALL_WORDS=${ALL_WORDS// /"--SPACE--"}
-    TERMINALSIZE=$(stty size | cut -d' ' -f2)
-    if [[ -n $TERMINALSIZE ]] ; then
-        MAXLEN=$(( $TERMINALSIZE - 3 ))
-    else
-        MAXLEN=30
-    fi
-    if echo "$ALL_WORDS" | grep -q "[\x80-\xFF]" ; then
-        MAXLEN=$(( $MAXLEN / 2 ))
-        echo 1
-    fi
-    FIRST_LINE=true
-    while true ; do
-        if $FIRST_LINE ; then
-            FIRST_LINE_WORD="- "
-        else 
-            FIRST_LINE_WORD="  "
-        fi
-        if (( $( echo -n "$out_words" | wc -m ) > $MAXLEN )) ; then
-            echo "${FIRST_LINE_WORD}${out_words% *}"
-            FIRST_LINE=false
-            out_words=""
-        else
-            bak_out_words=$out_words
-            if [[ "$ALL_WORDS" == "${ALL_WORDS%%"--SPACE--"*}" ]] ; then
-                echo "${FIRST_LINE_WORD}$ALL_WORDS"
-                break
-            fi
-            
-            out_words+="${ALL_WORDS%%"--SPACE--"*} "
-            if (( $( echo -n "$out_words" | wc -m ) > $MAXLEN + 3 )) ; then
-                if [[ -z $bak_out_words ]] ; then 
-                    echo "${FIRST_LINE_WORD}${out_words% *}"
-                    FIRST_LINE=false
-                    ALL_WORDS="${ALL_WORDS#*"--SPACE--"}"
-                else
-                    echo "${FIRST_LINE_WORD}${bak_out_words% *}"
-                    FIRST_LINE=false
-                fi
-                out_words=""
-            else
-                ALL_WORDS="${ALL_WORDS#*"--SPACE--"}"
-            fi
-        fi
-    done
-
-}
-
 my_print() {
-    if $KSU ; then
-        ui_print "$@"
-    elif $SYS_STATUS ; then
+    $SYS_STATUS && {
         echo -e "$@"
-    elif ! $SYS_STATUS ; then
+    } || {
         local input_message_ui="$@"
         local IFS=$'\n'
         while read -r line_print; do
             echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
         done <<<"$input_message_ui"
-    fi
+    }
 }
 export -f my_print
 
