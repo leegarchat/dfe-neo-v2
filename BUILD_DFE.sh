@@ -3,7 +3,7 @@
 
 FOLDER="DFE-NEO"
 
-VERSION="$1" 
+VERSION="$1"
 if [[ "$2" == "test" ]] ; then
     export compil_all_binary=false
     export language="ru en"
@@ -68,7 +68,7 @@ done <"$WORK_DIR/tmp/CONFIG"
 
 
 cd $WORK_DIR/$FOLDER
-for sortlanguage in ru en id zh hi ; do 
+for sortlanguage in $language ; do 
     case $sortlanguage in 
         en)
             language=english-language
@@ -87,10 +87,18 @@ for sortlanguage in ru en id zh hi ; do
         ;;
     esac
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
         sed -i 's/\r$//' $file
     done
+=======
+    for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
+        sed -i 's/\r$//' $file
+    done
+
+    change_langues $sortlanguage
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
 
     change_langues $sortlanguage
 >>>>>>> 7f6ea85 (buildfix)

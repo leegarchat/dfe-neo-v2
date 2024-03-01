@@ -10,7 +10,8 @@ magisk=false
 where_to_inject=false
 where_to_inject_auto=""
 MAGISK_ZIP=""
-NEO_VERSION="DFE NEO 2.4.6"
+NEO_VERSION="DFE NEO 2.5.x"
+
 
 if [ -n "$EXEMPLE_VERSION" ] ; then
     NEO_VERSION="DFE-NEO $EXEMPLE_VERSION"
@@ -75,6 +76,7 @@ get_real_link(){
 
 }
 my_print() {
+<<<<<<< HEAD
     if [[ -n "$KSU" ]] && $KSU ; then
         ui_print "$@"
     elif $SYS_STATUS ; then
@@ -86,6 +88,19 @@ my_print() {
             echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
         done <<<"$input_message_ui"
     fi
+=======
+    case $WHEN_INSTALLING in
+        kernelsu)
+            ui_print "$1"
+        ;;
+        magiskapp)
+            echo -e "$1"
+        ;;
+        recovery)
+            echo -e "ui_print $1\nui_print" >>"/proc/self/fd/$ZIPARG2"
+        ;;
+    esac
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
 }
 export -f my_print
 
@@ -493,22 +508,30 @@ update_partitions(){
     my_print "- $word49"
     BOOTCTL_SUPPORT=false
 <<<<<<< HEAD
+<<<<<<< HEAD
     $TOOLS/bootctl
     boot_ct_eror=$?
     if [[ "$boot_ct_eror" == "64" ]] ; then
 =======
     if $TOOLS/bootctl get-current-slot ; then
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
+=======
+    if $TOOLS/bootctl get-current-slot ; then
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
         BOOTCTL_SUPPORT=true
     fi
     if $BOOTCTL_SUPPORT ; then
         SLOTCURRENT=$($TOOLS/bootctl get-current-slot)
     else
 <<<<<<< HEAD
+<<<<<<< HEAD
         SLOTCURRENT="$CSLOT"
 =======
         SLOTCURRENT=$CSLOT
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
+=======
+        SLOTCURRENT=$CSLOT
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
     fi
 
     if [ -z "$SLOTCURRENT" ] ; then 
@@ -534,7 +557,11 @@ update_partitions(){
             ;;
         esac
     else
+<<<<<<< HEAD
     exit 14
+=======
+        exit 14
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
     fi
 
     for part in /dev/block/mapper/* ; do
