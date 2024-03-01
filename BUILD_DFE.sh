@@ -3,7 +3,11 @@
 
 FOLDER="DFE-NEO"
 
+<<<<<<< HEAD
 VERSION="$1" 
+=======
+VERSION="$1"
+>>>>>>> c09176e (buildfix)
 if [[ "$2" == "test" ]] ; then
     export compil_all_binary=false
     export language="ru en"
@@ -68,7 +72,7 @@ done <"$WORK_DIR/tmp/CONFIG"
 
 
 cd $WORK_DIR/$FOLDER
-for sortlanguage in ru en id zh hi ; do 
+for sortlanguage in $language ; do 
     case $sortlanguage in 
         en)
             language=english-language

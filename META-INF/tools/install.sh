@@ -543,7 +543,7 @@ update_partitions(){
             ;;
         esac
     else
-    exit 14
+        exit 14
     fi
 
     for part in /dev/block/mapper/* ; do
