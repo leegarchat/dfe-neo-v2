@@ -4,6 +4,13 @@
 FOLDER="DFE-NEO"
 
 VERSION="$1"
+if [[ "$2" == "test" ]] ; then
+    export compil_all_binary=false
+    export language="ru en"
+else
+    export compil_all_binary=true
+    export language="ru en id zh hi"
+fi
 
 if [ -z $FOLDER ] || [ -z $VERSION ] ; then 
     exit 22
@@ -54,7 +61,7 @@ done <"$WORK_DIR/tmp/CONFIG"
 
 
 cd $WORK_DIR/$FOLDER
-for sortlanguage in ru en id zh hi ; do 
+for sortlanguage in $language ; do 
     case $sortlanguage in 
         en)
             language=english-language
@@ -86,9 +93,9 @@ for sortlanguage in ru en id zh hi ; do
     # grep "languages=" $WORK_DIR/$FOLDER/NEO.config 
     # sleep 20
     {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/Universal-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/Universal-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/
     } & {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/x86-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/ \
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/x86-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/ \
                     -x META-INF/tools/binary/arm64-v8a/ \
                     -x META-INF/tools/binary/arm64-v8a/* \
                     -x META-INF/tools/binary/armeabi-v7a/ \
@@ -96,7 +103,7 @@ for sortlanguage in ru en id zh hi ; do
                     -x META-INF/tools/binary/x86_64/ \
                     -x META-INF/tools/binary/x86_64/* 
     } & {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/x86_64-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/ \
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/x86_64-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/ \
                     -x META-INF/tools/binary/arm64-v8a/ \
                     -x META-INF/tools/binary/arm64-v8a/* \
                     -x META-INF/tools/binary/armeabi-v7a/ \
@@ -104,7 +111,7 @@ for sortlanguage in ru en id zh hi ; do
                     -x META-INF/tools/binary/x86/ \
                     -x META-INF/tools/binary/x86/* 
     } & {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/armeabi-v7a-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/ \
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/armeabi-v7a-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/ \
                     -x META-INF/tools/binary/arm64-v8a/ \
                     -x META-INF/tools/binary/arm64-v8a/* \
                     -x META-INF/tools/binary/x86_64/ \
@@ -122,9 +129,9 @@ for sortlanguage in ru en id zh hi ; do
 
 
     } & {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/Universal-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*"
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/Universal-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*"
     } & {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/x86-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" \
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/x86-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" \
                     -x META-INF/tools/binary/arm64-v8a/ \
                     -x META-INF/tools/binary/arm64-v8a/* \
                     -x META-INF/tools/binary/armeabi-v7a/ \
@@ -132,7 +139,7 @@ for sortlanguage in ru en id zh hi ; do
                     -x META-INF/tools/binary/x86_64/ \
                     -x META-INF/tools/binary/x86_64/* 
     } & {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/x86_64-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" \
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/x86_64-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" \
                     -x META-INF/tools/binary/arm64-v8a/ \
                     -x META-INF/tools/binary/arm64-v8a/* \
                     -x META-INF/tools/binary/armeabi-v7a/ \
@@ -140,7 +147,7 @@ for sortlanguage in ru en id zh hi ; do
                     -x META-INF/tools/binary/x86/ \
                     -x META-INF/tools/binary/x86/* 
     } & {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/armeabi-v7a-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" \
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/armeabi-v7a-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" \
                     -x META-INF/tools/binary/arm64-v8a/ \
                     -x META-INF/tools/binary/arm64-v8a/* \
                     -x META-INF/tools/binary/x86_64/ \
@@ -148,7 +155,7 @@ for sortlanguage in ru en id zh hi ; do
                     -x META-INF/tools/binary/x86/ \
                     -x META-INF/tools/binary/x86/* 
     } & {
-    zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/arm64-v8a-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" \
+    $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language/arm64-v8a-$sortlanguage-$FOLDER-$VERSION.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" \
                     -x META-INF/tools/binary/armeabi-v7a/ \
                     -x META-INF/tools/binary/armeabi-v7a/* \
                     -x META-INF/tools/binary/x86_64/ \
@@ -157,9 +164,9 @@ for sortlanguage in ru en id zh hi ; do
                     -x META-INF/tools/binary/x86/* 
     } 
     wait
-    mkdir ./../"${FOLDER}-builds/${FOLDER}-$VERSION-GitHub"
-    cp ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language"/*.zip ./../"${FOLDER}-builds/${FOLDER}-$VERSION-GitHub/"
-    cp ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language"/*.zip ./../"${FOLDER}-builds/${FOLDER}-$VERSION-GitHub/"
+    $compil_all_binary && mkdir ./../"${FOLDER}-builds/${FOLDER}-$VERSION-GitHub"
+    $compil_all_binary && cp ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language"/*.zip ./../"${FOLDER}-builds/${FOLDER}-$VERSION-GitHub/"
+    $compil_all_binary && cp ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language"/*.zip ./../"${FOLDER}-builds/${FOLDER}-$VERSION-GitHub/"
 done
 
 
