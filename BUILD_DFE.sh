@@ -4,6 +4,7 @@
 FOLDER="DFE-NEO"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 VERSION="$1" 
 =======
 VERSION="$1"
@@ -11,6 +12,9 @@ VERSION="$1"
 >>>>>>> c09176e (buildfix)
 =======
 >>>>>>> c09176e (buildfix)
+=======
+VERSION="$1"
+>>>>>>> 320717a (Синхронизация с master)
 if [[ "$2" == "test" ]] ; then
     export compil_all_binary=false
     export language="ru en"
@@ -75,6 +79,7 @@ done <"$WORK_DIR/tmp/CONFIG"
 
 
 cd $WORK_DIR/$FOLDER
+
 for sortlanguage in $language ; do 
     case $sortlanguage in 
         en)
@@ -96,6 +101,7 @@ for sortlanguage in $language ; do
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
         sed -i 's/\r$//' $file
@@ -114,12 +120,11 @@ for sortlanguage in $language ; do
 
     change_langues $sortlanguage
 >>>>>>> 7f6ea85 (buildfix)
+=======
 
     change_langues $sortlanguage
->>>>>>> 7f6ea85 (buildfix)
+>>>>>>> 320717a (Синхронизация с master)
 
-    change_langues $sortlanguage
-sda
     ! [ -f $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language" ] && {
         mkdir $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language"
     }
