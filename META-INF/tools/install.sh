@@ -10,11 +10,14 @@ magisk=false
 where_to_inject=false
 where_to_inject_auto=""
 MAGISK_ZIP=""
-NEO_VERSION="DFE NEO 2.4.8"
+NEO_VERSION="DFE NEO 2.5.x"
+
 
 if [ -n "$EXEMPLE_VERSION" ] ; then
     NEO_VERSION="DFE-NEO $EXEMPLE_VERSION"
 fi
+
+
 
 
 if echo "$(basename "$ZIPARG3")" | $TOOLS/busybox grep -qi "extconfig"; then
@@ -54,16 +57,70 @@ get_real_link(){
 
 
 }
+
+my_out_print(){
+        
+    ALL_WORDS="$1"
+    ALL_WORDS=${ALL_WORDS// /"--SPACE--"}
+    TERMINALSIZE=$(stty size | cut -d' ' -f2)
+    if [[ -n $TERMINALSIZE ]] ; then
+        MAXLEN=$(( $TERMINALSIZE - 3 ))
+    else
+        MAXLEN=30
+    fi
+    if echo "$ALL_WORDS" | grep -q "[\x80-\xFF]" ; then
+        MAXLEN=$(( $MAXLEN / 2 ))
+        echo 1
+    fi
+    FIRST_LINE=true
+    while true ; do
+        if $FIRST_LINE ; then
+            FIRST_LINE_WORD="- "
+        else 
+            FIRST_LINE_WORD="  "
+        fi
+        if (( $( echo -n "$out_words" | wc -m ) > $MAXLEN )) ; then
+            echo "${FIRST_LINE_WORD}${out_words% *}"
+            FIRST_LINE=false
+            out_words=""
+        else
+            bak_out_words=$out_words
+            if [[ "$ALL_WORDS" == "${ALL_WORDS%%"--SPACE--"*}" ]] ; then
+                echo "${FIRST_LINE_WORD}$ALL_WORDS"
+                break
+            fi
+            
+            out_words+="${ALL_WORDS%%"--SPACE--"*} "
+            if (( $( echo -n "$out_words" | wc -m ) > $MAXLEN + 3 )) ; then
+                if [[ -z $bak_out_words ]] ; then 
+                    echo "${FIRST_LINE_WORD}${out_words% *}"
+                    FIRST_LINE=false
+                    ALL_WORDS="${ALL_WORDS#*"--SPACE--"}"
+                else
+                    echo "${FIRST_LINE_WORD}${bak_out_words% *}"
+                    FIRST_LINE=false
+                fi
+                out_words=""
+            else
+                ALL_WORDS="${ALL_WORDS#*"--SPACE--"}"
+            fi
+        fi
+    done
+
+}
+
 my_print() {
-    $SYS_STATUS && {
-        echo -e "$@"
-    } || {
-        local input_message_ui="$@"
-        local IFS=$'\n'
-        while read -r line_print; do
-            echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
-        done <<<"$input_message_ui"
-    }
+    case $WHEN_INSTALLING in
+        kernelsu|magiskapp)
+            echo -e "$1"
+        ;;
+        recovery)
+            local input_message_ui="$@"
+            local IFS=$'\n'
+            while read -r line_print; do
+                echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
+        ;;
+    esac
 }
 export -f my_print
 
@@ -1337,21 +1394,28 @@ my_print "- $word71" && {
 
 # word12="Монтирование раздела Vendor"
 my_print "- $word12" && {
-    SYSTEM_BLOCK=$(find_block_neo -b "vendor${CSLOT}")
+    VENDOR_BLOCK=$(find_block_neo -b "vendor${CSLOT}")
     # word13="Не удалось обноружить Vendor раздел"
-    [[ -z "${SYSTEM_BLOCK}" ]] && abort_neo -e 25.1 -m "$word13" 
+    [[ -z "${VENDOR_BLOCK}" ]] && abort_neo -e 25.1 -m "$word13" 
+    if ! $SYS_STATUS ; then
+        umount -fl "${VENDOR_BLOCK}"
+    fi 
 
-    umount -fl "${SYSTEM_BLOCK}"
+    name_vendor_block="vendor${CSLOT}"
+    full_path_to_vendor_folder=$TMPN/mapper/$name_vendor_block
 
-    name_system_block="vendor${CSLOT}"
-
-    $TOOLS/toybox mkdir -pv $TMPN/mapper/$name_system_block
+    $TOOLS/toybox mkdir -pv $full_path_to_vendor_folder
     
-    mount -o,ro $SYSTEM_BLOCK $TMPN/mapper/$name_system_block ||
-        mount -o,ro $SYSTEM_BLOCK $TMPN/mapper/$name_system_block
-    mountpoint -q $TMPN/mapper/$name_system_block || {
-        abort_neo -e 25.2 -m "Failed to mount $name_system_block" 
-    }
+    if ! mount -o,ro $VENDOR_BLOCK $full_path_to_vendor_folder ; then
+        mount -o,ro $VENDOR_BLOCK $full_path_to_vendor_folder
+    fi
+    if ! mountpoint -q $full_path_to_vendor_folder ; then
+        if $SYS_STATUS ; then
+            full_path_to_vendor_folder=/vendor
+        else
+            abort_neo -e 25.2 -m "Failed to mount $name_vendor_block" 
+        fi
+    fi
     
 }
 # word14="Создание neo_inject.img раздела"
@@ -1368,7 +1432,7 @@ my_print "- $word14" && {
     if [ -z "$hardware_boot" ]; then
         hardware_boot=$(getprop ro.boot.hardware.platform)
     fi
-    VENDOR_FOLDER="$TMPN/mapper/$name_system_block"
+    VENDOR_FOLDER="$full_path_to_vendor_folder"
     mkdir $TMPN/neo_inject${CSLOT}
     mkdir "$TMPN/neo_inject${CSLOT}/lost+found"
     $TOOLS/busybox cp -afc ${VENDOR_FOLDER}/etc/init/hw/* $TMPN/neo_inject${CSLOT}/
@@ -1439,15 +1503,15 @@ my_print "- $word14" && {
 
     
 
-    if [ -f "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" ]; then
-        $TOOLS/busybox cp -afc "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" "$TMPN/neo_inject${CSLOT}/$basename_fstab"
+    if [ -f "${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab" ]; then
+        $TOOLS/busybox cp -afc "${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab" "$TMPN/neo_inject${CSLOT}/$basename_fstab"
     else
         # word16="Не удалось определить расположение fstab:"
-        abort_neo -e 36.1 -m "$word16 $TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" 
+        abort_neo -e 36.1 -m "$word16 ${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab" 
     fi
-    if ($TOOLS/toybox grep -q "/userdata" "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab") ; then
+    if ($TOOLS/toybox grep -q "/userdata" "${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab") ; then
             $TOOLS/toybox echo "" > "$TMPN/neo_inject${CSLOT}/$basename_fstab"
-            patch_fstab_neo $dfe_paterns -f "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" -o "$TMPN/neo_inject${CSLOT}/$basename_fstab"
+            patch_fstab_neo $dfe_paterns -f "${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab" -o "$TMPN/neo_inject${CSLOT}/$basename_fstab"
     else
         # word17="Не найдено /userdata в fstab"
         abort_neo -e 36.4 -m "$word17"
@@ -1466,8 +1530,9 @@ my_print "- $word14" && {
     NEO_IMG="$TMPN/${LABLE}.img"
 
 }
-
-umount -fl $TMPN/mapper/$name_system_block
+if ! $SYS_STATUS ; then 
+    umount -fl $full_path_to_vendor_folder
+fi
 
 
 if $FLASH_IN_SUPER; then
