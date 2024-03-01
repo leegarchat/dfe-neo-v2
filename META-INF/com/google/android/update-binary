@@ -121,7 +121,7 @@ else
 fi
 
 if type stty &> /dev/null ; then 
-  TERMINAL_SIZE=$(stty size)
+  TERMINAL_SIZE=$(stty size | cut -d' ' -f2)
 fi
 rm -rf $TMPN
 my_print "- unpacking zip" # Распаковка .zip архива
