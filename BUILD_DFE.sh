@@ -91,10 +91,18 @@ for sortlanguage in $language ; do
         ;;
     esac
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
         sed -i 's/\r$//' $file
     done
+=======
+    for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
+        sed -i 's/\r$//' $file
+    done
+
+    change_langues $sortlanguage
+>>>>>>> 7f6ea85 (buildfix)
 
     change_langues $sortlanguage
 >>>>>>> 7f6ea85 (buildfix)
