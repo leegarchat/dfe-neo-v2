@@ -2,15 +2,14 @@
 
 export ZIPARG1="$1" 
 export ZIPARG2="$2" 
-<<<<<<< HEAD
-<<<<<<< HEAD
-export ZIPARG3="$3"
-=======
 export ZIPARG3="$3" 
+<<<<<<< HEAD
 >>>>>>> 915b19b (first test kernelsuapp/magiskapp 2.5.x)
 =======
 export ZIPARG3="$3" 
 >>>>>>> 915b19b (first test kernelsuapp/magiskapp 2.5.x)
+=======
+>>>>>>> 49c4a5d (fist_stable start on kernelsu)
 
 
 if [[ -z "$(getprop sys.boot_completed)" ]] && [[ -z "$(getprop dev.bootcomplete)" ]] ; then 
@@ -19,7 +18,7 @@ else
   export SYS_STATUS=true
 fi
 
-export EXEMPLE_VERSION=
+export EXEMPLE_VERSION="2.5.0.1"
 
 # Custom print function
 my_print(){
@@ -73,9 +72,10 @@ abort_neo() {
     
     num="$error_message"
     rounded_num=$(echo "$num" | awk '{printf "%.0f\n", $1}')
+    echo $num
     if ((rounded_num < 0)); then
         error_code=0
-        elif ((rounded_num > 255)); then
+    elif ((rounded_num > 255)); then
         error_code=255
     else
         error_code=$rounded_num
@@ -138,7 +138,7 @@ cp "$ZIPARG3" "$ZIP" || abort_neo -e "20.3" -m "Failed to copy $(basename $ZIPAR
 cd "$TMPN/unzip" || abort_neo -e "20.4" -m "Failed to change directory for unzip"
 $unzipbin "$ZIP" || abort_neo -e "20.5" -m "Failed to unzip archive"
 
-for folder in "$TMP_TOOLS"/* ; do
+for folder in "$TMP_TOOLS"/* "$TMP_TOOLS/binary"/* ; do
     [[ -d $folder ]] && {
         for file in "$folder"/* ; do
             chmod 777 "$file"
@@ -146,10 +146,11 @@ for folder in "$TMP_TOOLS"/* ; do
     } || chmod 777 "$folder"
 done
 ARCH=""
+/data/local/dfeneov2_tmp/unzip/META-INF/tools/binary/arm64-v8a/bash --version
 for ARCH_T in arm64-v8a armeabi-v7a x86_64 x86 ; do
     if [[ -d "$TMP_TOOLS/binary/$ARCH_T" ]] ; then
         [[ -f "$TMP_TOOLS/binary/$ARCH_T"/bash ]] || abort_neo -e "20.6" -m "For some reason, the bash binary is missing in dfe-neo"
-        "$TMP_TOOLS/binary/$ARCH_T"/bash --version &>/dev/null && {
+        "$TMP_TOOLS/binary/$ARCH_T"/bash --version && {
             "$TMP_TOOLS/binary/$ARCH_T"/magisk
             magisk_out_error=$?
             if [[ "$magisk_out_error" == "1" ]] || [[ "$magisk_out_error" == "0" ]] ; then
@@ -162,6 +163,7 @@ for ARCH_T in arm64-v8a armeabi-v7a x86_64 x86 ; do
         }
     fi
 done
+echo $ARCH
 if [[ -z $ARCH ]] ; then
     abort_neo -e "20.6" -m "For some reason, the bash binary is missing in dfe-neo"
 fi
