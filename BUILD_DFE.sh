@@ -36,6 +36,10 @@ for fulllite in Full Lite ; do
         rm -rf "$WORK_DIR/${FOLDER}-builds/${FOLDER}-$VERSION/$fulllite/"*
     fi
 done
+for file in $(find "$WORK_DIR/$FOLDER" | grep "\.sh") $(find "$WORK_DIR/$FOLDER" | grep "NEO\.config") $(find "$WORK_DIR/$FOLDER" | grep "\.lng") ; do
+    echo $file
+    sed -i 's/\r$//' $file
+done
 # sleep 10
 cd $WORK_DIR
 mkdir $WORK_DIR/tmp
@@ -47,9 +51,12 @@ change_langues(){
 cat $WORK_DIR/tmp/CONFIG > $WORK_DIR/$FOLDER/NEO.config
 
 while IFS= read -r line; do
+    echo "1'$line'"
     case $line in 
         *EXAMPLE_LNG)
+        echo "2'$line'"
         new_line=${line/"-EXAMPLE_LNG"/}
+        echo "3'$new_line'"
 sed -i "/$line/ {r $WORK_DIR/$FOLDER/META-INF/tools/languages/$1/$new_line.lng
   d
 }" $WORK_DIR/$FOLDER/NEO.config
@@ -61,6 +68,7 @@ done <"$WORK_DIR/tmp/CONFIG"
 
 
 cd $WORK_DIR/$FOLDER
+
 for sortlanguage in $language ; do 
     case $sortlanguage in 
         en)
@@ -79,9 +87,6 @@ for sortlanguage in $language ; do
             language=hindi-language
         ;;
     esac
-    for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
-        sed -i 's/\r$//' $file
-    done
 
     change_langues $sortlanguage
 
@@ -96,6 +101,10 @@ for sortlanguage in $language ; do
     # echo $current_lng
     # grep "languages=" $WORK_DIR/$FOLDER/NEO.config 
     # sleep 20
+    for file in $(find "$WORK_DIR/$FOLDER" | grep "\.sh") $(find "$WORK_DIR/$FOLDER" | grep "NEO\.config") $(find "$WORK_DIR/$FOLDER" | grep "\.lng") ; do
+        echo $file
+        sed -i 's/\r$//' $file
+    done
     {
     $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/Universal-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/
     } & {

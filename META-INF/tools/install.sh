@@ -10,7 +10,7 @@ magisk=false
 where_to_inject=false
 where_to_inject_auto=""
 MAGISK_ZIP=""
-NEO_VERSION="DFE NEO 2.4.6"
+NEO_VERSION="DFE NEO 2.4.8"
 
 if [ -n "$EXEMPLE_VERSION" ] ; then
     NEO_VERSION="DFE-NEO $EXEMPLE_VERSION"
@@ -470,13 +470,15 @@ grep_cmdline() {
 update_partitions(){
     my_print "- $word49"
     BOOTCTL_SUPPORT=false
-    if $TOOLS/bootctl get-current-slot ; then
+    $TOOLS/bootctl
+    boot_ct_eror=$?
+    if [[ "$boot_ct_eror" == "64" ]] ; then
         BOOTCTL_SUPPORT=true
     fi
     if $BOOTCTL_SUPPORT ; then
         SLOTCURRENT=$($TOOLS/bootctl get-current-slot)
     else
-        SLOTCURRENT=$CSLOT
+        SLOTCURRENT="$CSLOT"
     fi
 
     if [ -z "$SLOTCURRENT" ] ; then 
@@ -829,33 +831,30 @@ my_print "- $word52" && {
     if echo "$(basename "$ZIPARG3")" | $TOOLS/busybox grep -qi "extconfig"; then
         if [[ -f "$(dirname "$ZIPARG3")/NEO.config" ]]; then
             my_print "- $word53" && {
+                sed -i 's/\r$//' "$(dirname "$ZIPARG3")/NEO.config"
                 check_config "$(dirname "$ZIPARG3")/NEO.config" || abort_neo -e 23.1 -m "The config is configured incorrectly"
                 cat "$(dirname "$ZIPARG3")/NEO.config" > $TMPN/config.sh
                 sed -i 's/$/ #/g' $TMPN/config.sh
+                
                 source $TMPN/config.sh || abort_neo -e "23.11" -m "Failed to read config file"
             }
         else
             my_print "- $word54"
+            sed -i 's/\r$//' "$TMPN/unzip/NEO.config"
             check_config "$TMPN/unzip/NEO.config" || abort_neo -e 23.2 -m "The config is configured incorrectly"
             cat "$TMPN/unzip/NEO.config" > $TMPN/config.sh
             sed -i 's/$/ #/g' $TMPN/config.sh
+            
             source $TMPN/config.sh || abort_neo -e "23.21" -m "Failed to read config file"
         fi
     else
+        sed -i 's/\r$//' "$TMPN/unzip/NEO.config"
         check_config "$TMPN/unzip/NEO.config" || abort_neo -e 23.3 -m "The config is configured incorrectly"
         cat "$TMPN/unzip/NEO.config" > $TMPN/config.sh
         sed -i 's/$/ #/g' $TMPN/config.sh
         source $TMPN/config.sh || abort_neo -e "23.31" -m "Failed to read config file"  
     fi
 }
-
-
-
-
-
-
-
-
 
 
 #my_print "- Чтение пропов и определние переменных"
@@ -867,6 +866,11 @@ my_print "- $word2" && {
             CSLOT=$(grep_cmdline androidboot.slot)
         fi
     fi
+    case "$CSLOT" in
+        "_a") CSLOT="_a" ;;
+        "_b") CSLOT="_b" ;;
+        *) CSLOT="" ;;
+    esac
     export super_block=($(find_block_neo -b super))
     if [ -n $CSLOT ] ; then
         update_partitions
@@ -878,7 +882,11 @@ my_print "- $word2" && {
             fi
         fi
     fi 
-    
+    case "$CSLOT" in
+        "_a") CSLOT="_a" ;;
+        "_b") CSLOT="_b" ;;
+        *) CSLOT="" ;;
+    esac
     export ALRADY_DISABLE=false
     export FLASH_IN_SUPER=false
     export FLASH_IN_AUTO=false
