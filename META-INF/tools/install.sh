@@ -552,10 +552,14 @@ update_partitions(){
         esac
     else
 <<<<<<< HEAD
+<<<<<<< HEAD
         exit 14
 =======
     exit 14
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
+=======
+        exit 14
+>>>>>>> c09176e (buildfix)
     fi
 
     for part in /dev/block/mapper/* ; do

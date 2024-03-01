@@ -7,6 +7,9 @@ FOLDER="DFE-NEO"
 VERSION="$1" 
 =======
 VERSION="$1"
+<<<<<<< HEAD
+>>>>>>> c09176e (buildfix)
+=======
 >>>>>>> c09176e (buildfix)
 if [[ "$2" == "test" ]] ; then
     export compil_all_binary=false
