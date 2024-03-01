@@ -3,15 +3,7 @@
 
 FOLDER="DFE-NEO"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-VERSION="$1" 
-=======
 VERSION="$1"
->>>>>>> c09176e (buildfix)
-=======
-VERSION="$1"
->>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
 if [[ "$2" == "test" ]] ; then
     export compil_all_binary=false
     export language="ru en"
@@ -76,6 +68,7 @@ done <"$WORK_DIR/tmp/CONFIG"
 
 
 cd $WORK_DIR/$FOLDER
+
 for sortlanguage in $language ; do 
     case $sortlanguage in 
         en)
@@ -94,29 +87,9 @@ for sortlanguage in $language ; do
             language=hindi-language
         ;;
     esac
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
-        sed -i 's/\r$//' $file
-    done
-=======
-    for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
-        sed -i 's/\r$//' $file
-    done
 
     change_langues $sortlanguage
-<<<<<<< HEAD
->>>>>>> 7f6ea85 (buildfix)
-=======
->>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
->>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
 
-    change_langues $sortlanguage
->>>>>>> 7f6ea85 (buildfix)
-
-    change_langues $sortlanguage
-sda
     ! [ -f $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language" ] && {
         mkdir $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language"
     }

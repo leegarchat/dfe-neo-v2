@@ -10,31 +10,10 @@ magisk=false
 where_to_inject=false
 where_to_inject_auto=""
 MAGISK_ZIP=""
-NEO_VERSION="DFE NEO 2.5.x"
-
+NEO_VERSION="DFE NEO 2.4.8"
 
 if [ -n "$EXEMPLE_VERSION" ] ; then
     NEO_VERSION="DFE-NEO $EXEMPLE_VERSION"
-    
-fi
-
-if [[ -n "$KSU" ]] && [[ -z "$WHEN_INSTALLING" ]] ; then
-    rm -rf $MODPATH/* >&$LOGTOFILE
-    if [ -f /data/adb/magisk/busybox ] ; then
-        unzipbin="/data/adb/magisk/busybox unzip"
-    elif [ -f /data/adb/ksu/busybox ] ; then
-        unzipbin="/data/adb/ksu/busybox unzip"
-    elif type unzip 2> /dev/null ; then
-        unzipbin="unzip"
-    else
-        exit 19
-    fi
-    cd $MODPATH
-    $unzipbin "$ZIPFILE" >&$LOGTOFILE
-    sh $MODPATH/META-INF/com/google/android/update-binary 1 2 "$ZIPFILE" "ksuinstaller"
-     
-    rm -rf $MODPATH >&$LOGTOFILE
-    exit 0
 fi
 
 
@@ -61,7 +40,7 @@ if ! [ -f "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" ] ; th
         abort_neo -e "23.27" -m "English language file not found, WHAT THE FUCK????"
     }
 fi
-source "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" >&$LOGTOFILE || abort_neo -e "23.31" -m "Failed to read language file"
+source "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" || abort_neo -e "23.31" -m "Failed to read language file"
 
 
 
@@ -76,37 +55,15 @@ get_real_link(){
 
 }
 my_print() {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-    if [[ -n "$KSU" ]] && $KSU ; then
-        ui_print "$@"
-    elif $SYS_STATUS ; then
+    $SYS_STATUS && {
         echo -e "$@"
-    elif ! $SYS_STATUS ; then
+    } || {
         local input_message_ui="$@"
         local IFS=$'\n'
         while read -r line_print; do
             echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
         done <<<"$input_message_ui"
-    fi
-=======
->>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
-    case $WHEN_INSTALLING in
-        kernelsu)
-            ui_print "$1"
-        ;;
-        magiskapp)
-            echo -e "$1"
-        ;;
-        recovery)
-            echo -e "ui_print $1\nui_print" >>"/proc/self/fd/$ZIPARG2"
-        ;;
-    esac
-<<<<<<< HEAD
-=======
->>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
->>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
+    }
 }
 export -f my_print
 
@@ -513,39 +470,15 @@ grep_cmdline() {
 update_partitions(){
     my_print "- $word49"
     BOOTCTL_SUPPORT=false
-<<<<<<< HEAD
-<<<<<<< HEAD
     $TOOLS/bootctl
     boot_ct_eror=$?
     if [[ "$boot_ct_eror" == "64" ]] ; then
-=======
-    if $TOOLS/bootctl get-current-slot ; then
->>>>>>> 4f75f82 (Update update_partition and fix my_print)
-=======
-    if $TOOLS/bootctl get-current-slot ; then
-<<<<<<< HEAD
->>>>>>> 4f75f82 (Update update_partition and fix my_print)
-=======
->>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
->>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
         BOOTCTL_SUPPORT=true
     fi
     if $BOOTCTL_SUPPORT ; then
         SLOTCURRENT=$($TOOLS/bootctl get-current-slot)
     else
-<<<<<<< HEAD
-<<<<<<< HEAD
         SLOTCURRENT="$CSLOT"
-=======
-        SLOTCURRENT=$CSLOT
->>>>>>> 4f75f82 (Update update_partition and fix my_print)
-=======
-        SLOTCURRENT=$CSLOT
-<<<<<<< HEAD
->>>>>>> 4f75f82 (Update update_partition and fix my_print)
-=======
->>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
->>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
     fi
 
     if [ -z "$SLOTCURRENT" ] ; then 
@@ -571,15 +504,7 @@ update_partitions(){
             ;;
         esac
     else
-<<<<<<< HEAD
-        exit 14
-=======
-<<<<<<< HEAD
     exit 14
-=======
-        exit 14
->>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
->>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
     fi
 
     for part in /dev/block/mapper/* ; do
@@ -947,7 +872,7 @@ my_print "- $word2" && {
         *) CSLOT="" ;;
     esac
     export super_block=($(find_block_neo -b super))
-    if [ -n $CSLOT ] && ! $SYS_STATUS ; then
+    if [ -n $CSLOT ] ; then
         update_partitions
         CSLOT=$(getprop ro.boot.slot_suffix)
         if [ -z $CSLOT ]; then
@@ -1412,28 +1337,21 @@ my_print "- $word71" && {
 
 # word12="Монтирование раздела Vendor"
 my_print "- $word12" && {
-    VENDOR_BLOCK=$(find_block_neo -b "vendor${CSLOT}")
+    SYSTEM_BLOCK=$(find_block_neo -b "vendor${CSLOT}")
     # word13="Не удалось обноружить Vendor раздел"
-    [[ -z "${VENDOR_BLOCK}" ]] && abort_neo -e 25.1 -m "$word13" 
-    if ! $SYS_STATUS ; then
-        umount -fl "${VENDOR_BLOCK}"
-    fi 
+    [[ -z "${SYSTEM_BLOCK}" ]] && abort_neo -e 25.1 -m "$word13" 
 
-    name_vendor_block="vendor${CSLOT}"
-    full_path_to_vendor_folder=$TMPN/mapper/$name_vendor_block
+    umount -fl "${SYSTEM_BLOCK}"
 
-    $TOOLS/toybox mkdir -pv $full_path_to_vendor_folder
+    name_system_block="vendor${CSLOT}"
+
+    $TOOLS/toybox mkdir -pv $TMPN/mapper/$name_system_block
     
-    if ! mount -o,ro $VENDOR_BLOCK $full_path_to_vendor_folder ; then
-        mount -o,ro $VENDOR_BLOCK $full_path_to_vendor_folder
-    fi
-    if ! mountpoint -q $full_path_to_vendor_folder ; then
-        if $SYS_STATUS ; then
-            full_path_to_vendor_folder=/vendor
-        else
-            abort_neo -e 25.2 -m "Failed to mount $name_vendor_block" 
-        fi
-    fi
+    mount -o,ro $SYSTEM_BLOCK $TMPN/mapper/$name_system_block ||
+        mount -o,ro $SYSTEM_BLOCK $TMPN/mapper/$name_system_block
+    mountpoint -q $TMPN/mapper/$name_system_block || {
+        abort_neo -e 25.2 -m "Failed to mount $name_system_block" 
+    }
     
 }
 # word14="Создание neo_inject.img раздела"
@@ -1450,7 +1368,7 @@ my_print "- $word14" && {
     if [ -z "$hardware_boot" ]; then
         hardware_boot=$(getprop ro.boot.hardware.platform)
     fi
-    VENDOR_FOLDER="$full_path_to_vendor_folder"
+    VENDOR_FOLDER="$TMPN/mapper/$name_system_block"
     mkdir $TMPN/neo_inject${CSLOT}
     mkdir "$TMPN/neo_inject${CSLOT}/lost+found"
     $TOOLS/busybox cp -afc ${VENDOR_FOLDER}/etc/init/hw/* $TMPN/neo_inject${CSLOT}/
@@ -1521,15 +1439,15 @@ my_print "- $word14" && {
 
     
 
-    if [ -f "${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab" ]; then
-        $TOOLS/busybox cp -afc "${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab" "$TMPN/neo_inject${CSLOT}/$basename_fstab"
+    if [ -f "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" ]; then
+        $TOOLS/busybox cp -afc "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" "$TMPN/neo_inject${CSLOT}/$basename_fstab"
     else
         # word16="Не удалось определить расположение fstab:"
-        abort_neo -e 36.1 -m "$word16 ${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab" 
+        abort_neo -e 36.1 -m "$word16 $TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" 
     fi
-    if ($TOOLS/toybox grep -q "/userdata" "${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab") ; then
+    if ($TOOLS/toybox grep -q "/userdata" "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab") ; then
             $TOOLS/toybox echo "" > "$TMPN/neo_inject${CSLOT}/$basename_fstab"
-            patch_fstab_neo $dfe_paterns -f "${$full_path_to_vendor_folder}$(dirname ${path_original_fstab})/$basename_fstab" -o "$TMPN/neo_inject${CSLOT}/$basename_fstab"
+            patch_fstab_neo $dfe_paterns -f "$TMPN/mapper/${name_system_block}$(dirname ${path_original_fstab})/$basename_fstab" -o "$TMPN/neo_inject${CSLOT}/$basename_fstab"
     else
         # word17="Не найдено /userdata в fstab"
         abort_neo -e 36.4 -m "$word17"
@@ -1548,9 +1466,8 @@ my_print "- $word14" && {
     NEO_IMG="$TMPN/${LABLE}.img"
 
 }
-if ! $SYS_STATUS ; then 
-    umount -fl $full_path_to_vendor_folder
-fi
+
+umount -fl $TMPN/mapper/$name_system_block
 
 
 if $FLASH_IN_SUPER; then
@@ -1785,4 +1702,3 @@ my_print " "
 # word40="Установка завершена!"
 my_print "- $word40"
 my_print " "
-
