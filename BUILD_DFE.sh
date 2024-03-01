@@ -79,6 +79,10 @@ for sortlanguage in $language ; do
             language=hindi-language
         ;;
     esac
+    for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
+        sed -i 's/\r$//' $file
+    done
+
     change_langues $sortlanguage
 
     ! [ -f $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language" ] && {
