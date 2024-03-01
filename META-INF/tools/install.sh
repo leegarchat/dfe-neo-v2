@@ -76,6 +76,22 @@ get_real_link(){
 
 }
 my_print() {
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    if [[ -n "$KSU" ]] && $KSU ; then
+        ui_print "$@"
+    elif $SYS_STATUS ; then
+        echo -e "$@"
+    elif ! $SYS_STATUS ; then
+        local input_message_ui="$@"
+        local IFS=$'\n'
+        while read -r line_print; do
+            echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
+        done <<<"$input_message_ui"
+    fi
+=======
+>>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
     case $WHEN_INSTALLING in
         kernelsu)
             ui_print "$1"
@@ -87,6 +103,10 @@ my_print() {
             echo -e "ui_print $1\nui_print" >>"/proc/self/fd/$ZIPARG2"
         ;;
     esac
+<<<<<<< HEAD
+=======
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
+>>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
 }
 export -f my_print
 
@@ -503,7 +523,11 @@ update_partitions(){
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
 =======
     if $TOOLS/bootctl get-current-slot ; then
+<<<<<<< HEAD
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
+=======
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
+>>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
         BOOTCTL_SUPPORT=true
     fi
     if $BOOTCTL_SUPPORT ; then
@@ -517,7 +541,11 @@ update_partitions(){
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
 =======
         SLOTCURRENT=$CSLOT
+<<<<<<< HEAD
 >>>>>>> 4f75f82 (Update update_partition and fix my_print)
+=======
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
+>>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
     fi
 
     if [ -z "$SLOTCURRENT" ] ; then 
@@ -543,7 +571,15 @@ update_partitions(){
             ;;
         esac
     else
+<<<<<<< HEAD
         exit 14
+=======
+<<<<<<< HEAD
+    exit 14
+=======
+        exit 14
+>>>>>>> 7f6ea85623f03c04c3444314f8144818e166f848
+>>>>>>> 753bf8a4df6ae1d3473f85c728b6b25b63fec129
     fi
 
     for part in /dev/block/mapper/* ; do
