@@ -47,7 +47,8 @@ for fulllite in Full Lite ; do
         rm -rf "$WORK_DIR/${FOLDER}-builds/${FOLDER}-$VERSION/$fulllite/"*
     fi
 done
-for file in $(find "$WORK_DIR/$FOLDER" | grep "\.sh") $(find "$WORK_DIR/$FOLDER" | grep "NEO\.config") $(find "$WORK_DIR/$FOLDER" | grep "\.lng") ; do
+for file in $(find "$WORK_DIR/$FOLDER" | grep "\.sh") $(find "$WORK_DIR/$FOLDER" | grep "NEO\.config") $(find "$WORK_DIR/$FOLDER" | grep "\.lng") \
+    $(find "$WORK_DIR/$FOLDER" | grep "updater-script") $(find "$WORK_DIR/$FOLDER" | grep "update-binary") ; do
     echo $file
     sed -i 's/\r$//' $file
 done
@@ -136,7 +137,8 @@ for sortlanguage in $language ; do
     # echo $current_lng
     # grep "languages=" $WORK_DIR/$FOLDER/NEO.config 
     # sleep 20
-    for file in $(find "$WORK_DIR/$FOLDER" | grep "\.sh") $(find "$WORK_DIR/$FOLDER" | grep "NEO\.config") $(find "$WORK_DIR/$FOLDER" | grep "\.lng") ; do
+    for file in $(find "$WORK_DIR/$FOLDER" | grep "\.sh") $(find "$WORK_DIR/$FOLDER" | grep "NEO\.config") $(find "$WORK_DIR/$FOLDER" | grep "\.lng") \
+    $(find "$WORK_DIR/$FOLDER" | grep "updater-script") $(find "$WORK_DIR/$FOLDER" | grep "update-binary") ; do
         echo $file
         sed -i 's/\r$//' $file
     done
