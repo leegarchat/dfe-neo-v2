@@ -1,93 +1,97 @@
+- Русское [readme.md](https://github.com/leegarchat/dfe-neo-v2/blob/master/README_ru.md)
+- English [readme.md](https://github.com/leegarchat/dfe-neo-v2/blob/master/README.md)
+- Bahasa Indonesia [readme.md](https://github.com/leegarchat/dfe-neo-v2/blob/master/README_id.md)
+- 中文 [readme.md](https://github.com/leegarchat/dfe-neo-v2/blob/master/README_zh.md)
+- हिन्दी [readme.md](https://github.com/leegarchat/dfe-neo-v2/blob/master/README_hi.md)
+
 # Disable Force Encryption Native Early Override (DFE NEO v2)
 
-## Обсуждение на форумах:
+## Forum Discussions:
 
 - **XDA Developers:**
-  [Тема на форуме XDA](https://xdaforums.com/t/a-b-a-only-script-read-only-erofs-android-10-disable-force-encryption-native-early-override-dfe-neo-v2-disable-encryption-data-userdata.4454017/)
+  [XDA Forum Thread](https://xdaforums.com/t/a-b-a-only-script-read-only-erofs-android-10-disable-force-encryption-native-early-override-dfe-neo-v2-disable-encryption-data-userdata.4454017/)
 
 - **4PDA:**
-  [Тема на форуме 4PDA](https://4pda.to/forum/index.php?showtopic=1084916)
+  [4PDA Forum Thread](https://4pda.to/forum/index.php?showtopic=1084916)
 
 
-## Отключение шифрования /data для Android
+## Disabling Encryption for Android /data
 
-### Описание
+### Description
 
-DFE-NEO v2 - это скрипт, разработанный для отключения принудительного шифрования раздела /userdata на устройствах Android. Он предназначен для обеспечения простого переключения между ROMs и доступа к данным в TWRP, не требуя форматирования данных и удаления важных файлов пользователя, таких как ./Download, ./DCIM и прочие, расположенные во внутренней памяти устройства.
+DFE-NEO v2 is a script designed to disable forced encryption of the /userdata partition on Android devices. It is intended to facilitate easy switching between ROMs and access to data in TWRP without requiring data formatting or deletion of important user files, such as ./Download, ./DCIM, and others located in the device's internal memory.
 
-### Использование
+### Usage
 
-На данный момент скрипт можно использовать только в качестве установочного файла через TWRP.
+At the moment, the script can only be used as an installation file via TWRP.
 
-1. Установите `dfe-neo.zip`.
-2. Выберите нужную конфигурацию.
-3. После успешной установки, если ваши данные зашифрованы, вам необходимо отформатировать данные:
-   - Зайдите в меню TWRP "Меню очистки" ("Wipe").
-   - Выберите "format data".
-   - Подтвердите выполнение операции, введя "yes".
+1. Install `dfe-neo.zip`.
+2. Select the desired configuration.
+3. After successful installation, if your data is encrypted, you need to format the data:
+   - Go to the TWRP "Wipe" menu.
+   - Select "format data".
+   - Confirm the operation by entering "yes".
 
-## Примечание
+## Note
 
-Внимание: перед использованием скрипта убедитесь, что вы понимаете, как он работает, и сделайте резервную копию ваших данных для предотвращения потери информации.
+Attention: Before using the script, make sure you understand how it works and backup your data to prevent data loss.
 
-## Плюсы и минусы отключения шифрования /data
+## Pros and Cons of Disabling /data Encryption
 
-### Плюсы
+### Pros
 
-- **Упрощение резервного копирования и восстановления данных**: При отключенном шифровании данные в /data проще резервировать и восстанавливать. Это упрощает ситуации перепрошивки устройства, восстановления после сбоя или переноса данных на новое устройство.
-- **Упрощение смены прошивок**: Отключение шифрования предотвращает необходимость полного форматирования данных при смене прошивки, что экономит время и упрощает процесс перехода между прошивками.
-- **Доступ к данным в недоделанном TWRP**: Отключение шифрования позволяет получить доступ к данным в недоделанных или несовершенных версиях TWRP, которые не поддерживают расшифровку зашифрованных данных.
+- **Simplified Data Backup and Restore**: With encryption disabled, data in /data is easier to backup and restore. This simplifies situations such as device reflashing, recovery after failure, or data transfer to a new device.
+- **Simplified Firmware Switching**: Disabling encryption eliminates the need for full data formatting when switching firmware, saving time and simplifying the firmware switching process.
+- **Access to Data in Unfinished TWRP Builds**: Disabling encryption allows access to data in unfinished or imperfect TWRP builds that do not support decryption of encrypted data.
 
-### Минусы
+### Cons
 
-- **Уязвимость для утери данных**: При отключенном шифровании данные становятся уязвимыми для несанкционированного доступа. Это увеличивает риск доступа к вашим личным данным злоумышленниками.
-- **Повышенный риск утери устройства**: В случае утери или кражи устройства, данные могут быть украдены или скомпрометированы без необходимости расшифровки, что увеличивает риск утери конфиденциальных данных.
-- **Уязвимость для обхода защиты**: Отключение шифрования также увеличивает уязвимость для обхода защиты. Например, удаление файла блокировки может быть проще, что позволяет злоумышленнику получить доступ к устройству без необходимости ввода пароля.
+- **Data Loss Vulnerability**: With encryption disabled, data becomes vulnerable to unauthorized access, increasing the risk of personal data being accessed by malicious actors.
+- **Increased Device Loss Risk**: In case of device loss or theft, data can be stolen or compromised without the need for decryption, increasing the risk of confidential data loss.
+- **Bypass Vulnerability**: Disabling encryption also increases vulnerability to bypassing security measures. For example, removing the lock file may be easier, allowing an attacker to access the device without entering a password.
 
-Важно внимательно взвесить все плюсы и минусы перед решением отключить шифрование данных на устройстве. Безопасность и удобство использования должны быть уравновешены в зависимости от ваших потребностей и угроз, с которыми вы сталкиваетесь.
-### Работа скрипта DFE-Neo:
+It is important to carefully weigh all the pros and cons before deciding to disable data encryption on your device. Security and usability should be balanced depending on your needs and the threats you face.
+### DFE-Neo Script Operation:
 
-#### Первый этап:
-1. **Определение слота прошивки**: Скрипт определяет, в каком суффиксе/слоте должна запуститься прошивка.
+#### First Stage:
+1. **Determining Firmware Slot**: The script determines which suffix/slot the firmware should boot into.
 
-2. **Переразметка разделов**: Необходимо для определения корректного слота. После этого можно устанавливать любые zip файлы даже без перезагрузки TWRP после установки новой прошивки.
+2. **Repartitioning**: Necessary for determining the correct slot. After this, any zip files can be installed without having to reboot TWRP after installing a new firmware.
 
-3. **Обман TWRP**: Задает TWRP суффикс, который должен загрузиться в случае, если установлена новая прошивка.
+3. **TWRP Bypass**: Sets the suffix TWRP should boot into if a new firmware is installed.
 
-#### Второй этап:
-1. **Проверка наличия DFE-Neo v2**: Проверяется, установлен ли DFE-Neo v2. Если установлен, скрипт предлагает удалить DFE или установить его заново.
+#### Second Stage:
+1. **Checking for DFE-Neo v2**: Checks if DFE-Neo v2 is installed. If installed, the script offers to remove DFE or install it again.
 
-2. **Задание аргументов**: Аргументы задаются пользователем либо считываются из файла NEO.config.
+2. **Setting Arguments**: Arguments are set by the user or read from the NEO.config file.
 
-#### Третий этап:
-1. **Монтирование раздела vendor загрузочной прошивки**: Скрипт монтирует раздел vendor загрузочной прошивки.
+#### Third Stage:
+1. **Mounting vendor partition of the boot firmware**: The script mounts the vendor partition of the boot firmware.
 
-2. **Копирование файлов из каталога /vendor/etc/init/hw**: Все файлы из указанного каталога копируются во временную папку.
+2. **Copying files from /vendor/etc/init/hw**: All files from the specified directory are copied to a temporary folder.
 
-3. **Модификация файлов fstab и *.rc**: Модифицируются *.rc файлы и fstab в соответствии с параметрами из NEO.config.
+3. **Modifying fstab and *.rc files**: *.rc files and fstab are modified according to parameters from NEO.config.
 
-4. **Создание ext4 образа с измененными файлами**: Создается ext4 образ с измененными файлами из временной папки.
+4. **Creating ext4 image with modified files**: An ext4 image with modified files from the temporary folder is created.
 
-#### Четвертый этап:
-1. **Запись inject_neo.img в vendor_boot/boot**: inject_neo.img записывается в vendor_boot/boot противоположного суффикса или в super текущего слота и суффикса.
+#### Fourth Stage:
+1. **Writing inject_neo.img to vendor_boot/boot**: inject_neo.img is written to vendor_boot/boot of the opposite suffix or current slot and suffix.
 
-2. **Проверка загрузочных суффиксов**: Проверяется наличие ramdisk.cpio и fisrt_stage_mount fstab файла.
+2. **Checking boot suffixes**: Checks for the presence of ramdisk.cpio and fisrt_stage_mount fstab file.
 
-3. **Модификация fisrt_stage_mount**: fisrt_stage_mount файл модифицируется добавлением новой точки монтирования.
+3. **Modifying fisrt_stage_mount**: fisrt_stage_mount file is modified by adding a new mount point.
 
-#### Опциональные действия:
-- **Удаление PIN с локскрина**: Если выбрана соответствующая опция, PIN с локскрина будет удален.
-- **Очистка данных (wipe data)**: Если выбрана соответствующая опция, будут стерты данные.
-- **Установка Magisk**: Если указана версия Magisk, она будет установлена.
+#### Optional Actions:
+- **Removing PIN from Lock Screen**: If the corresponding option is selected, PIN from the lock screen will be removed.
+- **Wiping Data**: If the corresponding option is selected, data will be wiped.
+- **Installing Magisk**: If Magisk version is specified, it will be installed.
 
-Это общее описание работы скрипта DFE-Neo. Он выполняет ряд шагов для подготовки и модификации системы, чтобы обеспечить корректное выполнение процедуры установки и обновления прошивки на устройстве.
+This is a general description of how the DFE-Neo script operates. It performs a series of steps to prepare and modify the system to ensure the correct execution of the firmware installation and update procedure on the device.
 
+## Used Binaries
 
-## Использованные бинарники
-
-- **Magisk, Busybox, Magiskboot**: Взято с последней версии [Magisk](https://github.com/topjohnwu/Magisk).
-- **avbctl, bootctl, snapshotctl, toolbox, toybox, make_ext4fs**: Скомпилированы из исходного кода Android.
-- **lptools_new**: Для создания бинарника использовался открытый исходный код с [GitHub](https://github.com/leegarchat/lptools_new), собственный код утилиты также включен.
-- **Bash**: Взят статичный бинарник с [Debian Packages](https://packages.debian.org/unstable/bash-static).
-- **SQLite3**: Взят из [репозитория](https://github.com/rojenzaman/sqlite3-magisk-module).
-
+- **Magisk, Busybox, Magiskboot**: Taken from the latest version of [Magisk](https://github.com/topjohnwu/Magisk).
+- **avbctl, bootctl, snapshotctl, toolbox, toybox, make_ext4fs**: Compiled from Android source code.
+- **lptools_new**: Open-source code from [GitHub](https://github.com/leegarchat/lptools_new) was used to create the binary, with its own utility code included.
+- **Bash**: Static binary taken from [Debian Packages](https://packages.debian.org/unstable/bash-static).
+- **SQLite3**: Taken from the [repository](https://github.com/rojenzaman/sqlite3-magisk-module).
