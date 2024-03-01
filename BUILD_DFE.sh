@@ -86,6 +86,14 @@ for sortlanguage in ru en id zh hi ; do
             language=hindi-language
         ;;
     esac
+<<<<<<< HEAD
+=======
+    for file in $(find $WORK_DIR | grep "\.sh") $(find $WORK_DIR | grep "NEO\.config") ; do
+        sed -i 's/\r$//' $file
+    done
+
+    change_langues $sortlanguage
+>>>>>>> 7f6ea85 (buildfix)
 
     change_langues $sortlanguage
 sda
