@@ -3,7 +3,7 @@
 
 FOLDER="DFE-NEO"
 
-VERSION="$1"
+VERSION="$1" 
 if [[ "$2" == "test" ]] ; then
     export compil_all_binary=false
     export language="ru en"
@@ -68,8 +68,7 @@ done <"$WORK_DIR/tmp/CONFIG"
 
 
 cd $WORK_DIR/$FOLDER
-
-for sortlanguage in $language ; do 
+for sortlanguage in ru en id zh hi ; do 
     case $sortlanguage in 
         en)
             language=english-language
@@ -89,7 +88,7 @@ for sortlanguage in $language ; do
     esac
 
     change_langues $sortlanguage
-
+sda
     ! [ -f $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language" ] && {
         mkdir $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language"
     }

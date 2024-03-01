@@ -2,7 +2,7 @@
 
 export ZIPARG1="$1" 
 export ZIPARG2="$2" 
-export ZIPARG3="$3" 
+export ZIPARG3="$3"
 
 
 if [[ -z "$(getprop sys.boot_completed)" ]] && [[ -z "$(getprop dev.bootcomplete)" ]] ; then 
