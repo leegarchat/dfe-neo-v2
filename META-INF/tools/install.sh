@@ -43,6 +43,7 @@ if ! [ -f "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" ] ; th
         abort_neo -e "23.27" -m "English language file not found, WHAT THE FUCK????"
     }
 fi
+sed -i 's/\r$//' "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh"
 source "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" || abort_neo -e "23.31" -m "Failed to read language file"
 
 
@@ -62,42 +63,78 @@ my_out_print(){
         
     ALL_WORDS="$1"
     ALL_WORDS=${ALL_WORDS// /"--SPACE--"}
-    TERMINALSIZE=$(stty size | cut -d' ' -f2)
-    if [[ -n $TERMINALSIZE ]] ; then
-        MAXLEN=$(( $TERMINALSIZE - 3 ))
+    if [[ -n "$TERMINAL_SIZE" ]] ; then
+        MAXLEN=$(( $TERMINAL_SIZE - 3 ))
     else
-        MAXLEN=30
+        MAXLEN=45
     fi
-    if echo "$ALL_WORDS" | grep -q "[\x80-\xFF]" ; then
-        MAXLEN=$(( $MAXLEN / 2 ))
-        echo 1 
+    case "$languages" in
+        zh|hi)
+            MAXLEN=$(( $MAXLEN / 2 ))
+        ;;
+    esac
+    if [[ -n "$2" ]] && [[ "$2" == "-s" ]] ; then 
+        FIRST_LINE=false
+        NULL_FIRST_LINE=true
+    else
+        FIRST_LINE=true
+        NULL_FIRST_LINE=false
     fi
-    FIRST_LINE=true
     while true ; do
         if $FIRST_LINE ; then
-            FIRST_LINE_WORD="- "
+            case "$out_words" in 
+                "- "*)
+                    FIRST_LINE_WORD=""
+                ;;
+                "-"*)
+                    FIRST_LINE_WORD=" "
+                ;;
+                *)
+                    FIRST_LINE_WORD="- "
+                ;;
+            esac
         else 
-            FIRST_LINE_WORD="  "
+            if $NULL_FIRST_LINE ; then
+                FIRST_LINE_WORD=""
+            else
+                FIRST_LINE_WORD="  "
+            fi
         fi
         if (( $( echo -n "$out_words" | wc -m ) > $MAXLEN )) ; then
-            echo "${FIRST_LINE_WORD}${out_words% *}"
+            if [[ $WHEN_INSTALLING == "recovery" ]] ; then
+                echo -e "ui_print ${FIRST_LINE_WORD}${out_words}\nui_print" >>"/proc/self/fd/$ZIPARG2"
+            else
+                echo -e "${FIRST_LINE_WORD}${out_words}"
+            fi
             FIRST_LINE=false
             out_words=""
         else
             bak_out_words=$out_words
             if [[ "$ALL_WORDS" == "${ALL_WORDS%%"--SPACE--"*}" ]] ; then
-                echo "${FIRST_LINE_WORD}$ALL_WORDS"
+                if [[ $WHEN_INSTALLING == "recovery" ]] ; then
+                    echo -e "ui_print ${FIRST_LINE_WORD}$ALL_WORDS\nui_print" >>"/proc/self/fd/$ZIPARG2"
+                else
+                    echo -e "${FIRST_LINE_WORD}$ALL_WORDS"
+                fi
                 break
             fi
             
             out_words+="${ALL_WORDS%%"--SPACE--"*} "
             if (( $( echo -n "$out_words" | wc -m ) > $MAXLEN + 3 )) ; then
                 if [[ -z $bak_out_words ]] ; then 
-                    echo "${FIRST_LINE_WORD}${out_words% *}"
+                    if [[ $WHEN_INSTALLING == "recovery" ]] ; then
+                        echo -e "ui_print ${FIRST_LINE_WORD}${out_words}\nui_print" >>"/proc/self/fd/$ZIPARG2"
+                    else
+                        echo -e "${FIRST_LINE_WORD}${out_words}"
+                    fi
                     FIRST_LINE=false
                     ALL_WORDS="${ALL_WORDS#*"--SPACE--"}"
                 else
-                    echo "${FIRST_LINE_WORD}${bak_out_words% *}"
+                    if [[ $WHEN_INSTALLING == "recovery" ]] ; then
+                        echo -e "ui_print ${FIRST_LINE_WORD}${bak_out_words}\nui_print" >>"/proc/self/fd/$ZIPARG2"
+                        else
+                        echo -e "${FIRST_LINE_WORD}${bak_out_words}"
+                    fi
                     FIRST_LINE=false
                 fi
                 out_words=""
@@ -140,7 +177,7 @@ my_print() {
             echo -e "$1"
         ;;
         recovery)
-            local input_message_ui="$@"
+            local input_message_ui="$1"
             local IFS=$'\n'
             while read -r line_print; do
                 echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
@@ -759,8 +796,8 @@ update_partitions(){
         
         if ! $force_start ; then 
         my_print "- $word93"
-            my_print "    $word94"
-            my_print "    $word95"
+            my_print "    $word94" -s
+            my_print "    $word95" -s
             if volume_selector ; then 
                 export FINAL_ACTIVE_SLOT=0
                 export FINAL_ACTIVE_SUFFIX=_a
@@ -1125,8 +1162,8 @@ my_print "- $word2" && {
             my_print " "
             my_print "- $word55"
             my_print "- $word56"
-            my_print "    $word57"
-            my_print "    $word58"
+            my_print "    $word57" -s
+            my_print "    $word58" -s
             if ! volume_selector ; then 
                 remove_dfe_neo $DETECT_NEO_IN_BOOT $DETECT_NEO_IN_SUPER
                 if $DETECT_NEO_IN_VENDOR_BOOT ; then
@@ -1145,8 +1182,8 @@ my_print "- $word2" && {
         my_print " "
         my_print "- $word60"
         my_print "- **$word61"
-        my_print "    $word63"
-        my_print "    $word64"
+        my_print "    $word63" -s
+        my_print "    $word64" -s
         if volume_selector ; then
             hide_not_encrypted=true
         else
@@ -1157,8 +1194,8 @@ my_print "- $word2" && {
         my_print " "
         my_print "- $word62"
         my_print "- **$word61"
-        my_print "    $word63"
-        my_print "    $word64"
+        my_print "    $word63" -s
+        my_print "    $word64" -s
         if volume_selector ; then
             safety_net_fix=true
         else
@@ -1168,8 +1205,8 @@ my_print "- $word2" && {
     if [[ $wipe_data == "ask" ]] ; then
         my_print " "
         my_print "- $word69"
-        my_print "    $word65"
-        my_print "    $word66"
+        my_print "    $word65" -s
+        my_print "    $word66" -s
         if volume_selector ; then
             wipe_data=true
         else
@@ -1179,8 +1216,8 @@ my_print "- $word2" && {
     if [[ $remove_pin == "ask" ]] ; then
         my_print " "
         my_print "- $word68"
-        my_print "    $word65"
-        my_print "    $word66"
+        my_print "    $word65" -s
+        my_print "    $word66" -s
         if volume_selector ; then
             remove_pin=true
         else
@@ -1190,8 +1227,8 @@ my_print "- $word2" && {
     if [[ $modify_early_mount == "ask" ]] ; then
         my_print " "
         my_print "- $word67"
-        my_print "    $word65"
-        my_print "    $word66"
+        my_print "    $word65" -s
+        my_print "    $word66" -s
         if volume_selector ; then
             modify_early_mount=true
         else
@@ -1201,8 +1238,8 @@ my_print "- $word2" && {
     if [[ $disable_verity_and_verification == "ask" ]] ; then
         my_print " "
         my_print "- $word92"
-        my_print "    $word65"
-        my_print "    $word66"
+        my_print "    $word65" -s
+        my_print "    $word66" -s
         if volume_selector ; then
             disable_verity_and_verification=true
         else
@@ -1213,14 +1250,14 @@ my_print "- $word2" && {
     if [[ $zygisk_turn_on == "ask" ]] ; then
         my_print " "
         my_print "- $word84"
-        my_print "    $word65"
-        my_print "    $word66"
+        my_print "    $word65" -s
+        my_print "    $word66" -s
         if volume_selector ; then
             zygisk_turn_on=true
             my_print " "
             my_print "- $word85"
-            my_print "    $word86"
-            my_print "    $word87"
+            my_print "    $word86" -s 
+            my_print "    $word87" -s
             if volume_selector ; then
                 zygisk_turn_on_parm=first_time_boot
             else
@@ -1236,14 +1273,14 @@ my_print "- $word2" && {
     if [[ $add_custom_deny_list == "ask" ]] ; then
         my_print " "
         my_print "- $word88"
-        my_print "    $word65"
-        my_print "    $word66"
+        my_print "    $word65" -s
+        my_print "    $word66" -s
         if volume_selector ; then
             add_custom_deny_list=true
             my_print " "
             my_print "- $word89"
-            my_print "    $word90"
-            my_print "    $word91"
+            my_print "    $word90" -s
+            my_print "    $word91" -s
             if volume_selector ; then
                 add_custom_deny_list_parm=first_time_boot
             else
