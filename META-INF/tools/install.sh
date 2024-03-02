@@ -569,12 +569,7 @@ grep_cmdline() {
 update_partitions(){
     my_print "- $word49"
     BOOTCTL_SUPPORT=false
-    $TOOLS/bootctl
-    boot_ct_eror=$?
-    if [[ "$boot_ct_eror" == "64" ]] ; then
-        BOOTCTL_SUPPORT=true
-    fi
-    if $BOOTCTL_SUPPORT ; then
+    if $bootctl_state ; then
         SLOTCURRENT=$($TOOLS/bootctl get-current-slot)
     else
         SLOTCURRENT="$CSLOT"
@@ -806,7 +801,7 @@ update_partitions(){
             done
 
         done
-        if $BOOTCTL_SUPPORT ; then
+        if $bootctl_state ; then
             $TOOLS/bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
         fi
     
@@ -955,6 +950,19 @@ my_print "- $word52" && {
     fi
 }
 
+$TOOLS/bootclt $>$LOGNEO
+if [[ "$?" == "64" ]] ; then
+    bootctl_state=true
+else
+    bootctl_state=false
+fi
+$TOOLS/snapshotctl $>$LOGNEO
+if [[ "$?" == "64" ]] ; then
+    snapshotctl_state=true
+else
+    snapshotctl_state=false
+fi
+
 
 #my_print "- Чтение пропов и определние переменных"
 my_print "- $word2" && {
@@ -970,8 +978,35 @@ my_print "- $word2" && {
         "_b") CSLOT="_b" ;;
         *) CSLOT="" ;;
     esac
-    find_block_neo -c -b super || abort_neo -e "24.1" -m "$word3"
+    if ! find_block_neo -c -b super ; then
+        abort_neo -e "24.1" -m "$word3"
+    fi
     export super_block=$(find_block_neo -b super)
+
+    install_after_ota=false
+    if find_block_neo -c -b boot_a && find_block_neo -c -b boot_b && $SYS_STATUS ; then
+        $bootctl_state && {
+            snapshot_status=$($TOOLS/bootctl get-snapshot-merge-status)
+        }
+        $bootctl_state && {
+            if ! [[ "$snapshot_status" == "$(${TOOLS}/snapshotctl dump 2>/dev/null | grep '^Update state:' | awk '{print $3}')" ]] ; then
+                snapshot_status=$($TOOLS/snapshotctl dump 2>/dev/null | grep '^Update state:' | awk '{print $3}')
+            fi 
+            case "$snapshot_status" in
+                cancelled|merging|none|snapshotted)
+                    my_print "- Current snapshot state: $snapshot_status"
+                    if ! [[ "$snapshot_status" == "none" ]]; then
+                        my_print "- Seems like you just installed a rom update."
+                        install_after_ota=true
+                    fi
+                ;;
+            esac
+        }
+    fi
+
+
+
+    SWITCH_SLOT_AFTER_OTA=false
     if ! $SYS_STATUS && [ -n $CSLOT ] ; then
         update_partitions
         CSLOT=$(getprop ro.boot.slot_suffix)
@@ -981,11 +1016,45 @@ my_print "- $word2" && {
                 CSLOT=$(grep_cmdline androidboot.slot)
             fi
         fi
+    elif $SYS_STATUS && $install_after_ota ; then
+        if $TOOLS/snapshotctl map &>$LOGNEO ; then
+            my_print "- Mapping partitions after ota"
+            SWITCH_SLOT_AFTER_OTA=true
+        else
+            exit 22
+        fi
     fi 
     case "$CSLOT" in
-        "_a") CSLOT="_a" ;;
-        "_b") CSLOT="_b" ;;
-        *) CSLOT="" ;;
+        "_a") 
+            if $SWITCH_SLOT_AFTER_OTA ; then
+                CSLOT="_b" 
+                CSLOTSLOT=1
+                RCSLOTSLOT=0
+                RCSLOT="_a"
+            else
+                CSLOT="_a" 
+                CSLOTSLOT=0
+                RCSLOTSLOT=1
+                RCSLOT="_b"
+            fi  
+        ;;
+        "_b") 
+            if $SWITCH_SLOT_AFTER_OTA ; then
+                CSLOT="_a" 
+                CSLOTSLOT=0
+                RCSLOTSLOT=1
+                RCSLOT="_b"
+            else
+                CSLOT="_b" 
+                CSLOTSLOT=1
+                RCSLOTSLOT=0
+                RCSLOT="_a" 
+            fi  
+        ;;
+        *) 
+        CSLOT=""
+        RCSLOT=""
+        ;;
     esac
     export ALRADY_DISABLE=false
     export FLASH_IN_SUPER=false
@@ -993,13 +1062,6 @@ my_print "- $word2" && {
     export FLASH_IN_BOOT=true
 
 
-    if [[ -n "$CSLOT" ]]; then
-        if [[ "$CSLOT" == _a ]]; then
-            RCSLOT="_b"
-        else
-            RCSLOT="_a"
-        fi
-    fi
     echo 12 &>$LOGNEO
     DETECT_NEO_IN_BOOT=false
     DETECT_NEO_IN_SUPER=false
@@ -1018,8 +1080,8 @@ my_print "- $word2" && {
         fi
     fi
     echo 181 &>$LOGNEO
-    if [[ -n "$FINAL_ACTIVE_SUFFIX" ]] ; then 
-        if $TOOLS/lptools_new --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --super $super_block --get-info | grep "neo_inject" &>$LOGNEO ; then
+    if [[ -n "$CSLOTSLOT" ]] ; then 
+        if $TOOLS/lptools_new --slot $CSLOTSLOT --suffix $CSLOT --super $super_block --get-info | grep "neo_inject" &>$LOGNEO ; then
             DETECT_NEO_IN_SUPER=true
         fi
     else
@@ -1130,15 +1192,19 @@ my_print "- $word2" && {
             safety_net_fix=false
         fi
     fi
-    if [[ $wipe_data == "ask" ]] ; then
-        my_print " "
-        my_print "- $word69"
-        my_print "    $word65" -s
-        my_print "    $word66" -s
-        if volume_selector ; then
-            wipe_data=true
-        else
-            wipe_data=false
+    if $install_after_ota ; then
+        wipe_data=false
+    else
+        if [[ $wipe_data == "ask" ]] ; then
+            my_print " "
+            my_print "- $word69"
+            my_print "    $word65" -s
+            my_print "    $word66" -s
+            if volume_selector ; then
+                wipe_data=true
+            else
+                wipe_data=false
+            fi
         fi
     fi
     if [[ $remove_pin == "ask" ]] ; then
@@ -1453,7 +1519,11 @@ my_print "- $word12" && {
     fi
     if ! mountpoint -q $full_path_to_vendor_folder ; then
         if $SYS_STATUS ; then
-            full_path_to_vendor_folder=/vendor
+            if $install_after_ota ; then 
+                exit 112
+            else
+                full_path_to_vendor_folder=/vendor
+            fi
         else
             abort_neo -e 25.2 -m "Failed to mount $name_vendor_block" 
         fi
@@ -1581,12 +1651,12 @@ if $FLASH_IN_SUPER; then
     # word20="Запись neo_inject.img в super раздел"
     my_print "- $word20" && {
         SIZE_NEO_IMG=$($TOOLS/busybox stat -c%s $NEO_IMG)
-        if [ -n "$FINAL_ACTIVE_SUFFIX" ] ; then 
+        if [ -n "$CSLOTSLOT" ] ; then 
             $TOOLS/lptools_new --super $super_block --slot 0 --suffix _a --remove "neo_inject_a" &>$LOGNEO
             $TOOLS/lptools_new --super $super_block --slot 0 --suffix _b --remove "neo_inject_b" &>$LOGNEO
             $TOOLS/lptools_new --super $super_block --slot 1 --suffix _a --remove "neo_inject_a" &>$LOGNEO
             $TOOLS/lptools_new --super $super_block --slot 1 --suffix _b --remove "neo_inject_b" &>$LOGNEO
-            parametrs_lptools_final="--slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --create"
+            parametrs_lptools_final="--slot $CSLOTSLOT --suffix $CSLOT --create"
         else
             $TOOLS/lptools_new --super $super_block --remove "neo_inject${CSLOT}" &>$LOGNEO
             parametrs_lptools_final=""
