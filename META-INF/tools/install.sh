@@ -995,7 +995,18 @@ my_print "- $word2" && {
         "_b") CSLOT="_b" ;;
         *) CSLOT="" ;;
     esac
-    
+    my_print "- Проверка доступтности для устройства" && {
+        for check_support_boot in vendor_boot boot ; do 
+            if [[ -z "$CSLOT" ]] ; then
+                
+                if [[ -h "/dev/block/by-name/$check_support_boot" ]] ; then
+                    check_support_boot="/dev/block/by-name/$check_support_boot"
+                elif [[ -h "/dev/block/bootdevice/by-name/$check_support_boot" ]] ; then
+                    check_support_boot="/dev/block/bootdevice/by-name/$check_support_boot"
+                fi
+
+            fi
+    }
     export super_block=$(find_super_partition)
     if [[ -z "$super_block" ]] ; then
         abort_neo -e "24.1" -m "$word3"
