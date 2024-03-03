@@ -46,16 +46,7 @@ source "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" || abort_
 
 
 
-get_real_link(){
-    input_path_file="$1"
 
-    while file "$input_path_file" | grep -q symbolic ; do
-        input_path_file="$(file "$input_path_file")"
-        input_path_file="${input_path_file}"
-    done
-
-
-}
 
 my_out_print(){
         
@@ -144,6 +135,7 @@ my_out_print(){
 
 }
 
+<<<<<<< HEAD
 my_print() {
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -337,106 +329,11 @@ patch_fstab_neo() {
                                 fi
                             done
                         fi
+=======
+>>>>>>> 485a1d7 (.)
 
 
-                    done
-                fi
-            ;;
-        esac
-        $TOOLS/toybox echo "$line" >>"$output_fstab"
-    done <"$input_fstab"
 
-}
-export -f patch_fstab_neo
-
-
-make_img() {
-    TARGET_DIR="$1"
-    LABLE="$2"
-    SYSTEM_FOLDER_OWNER="$3"
-    INJECT_TMP_FOLDER_ONWER="$4"
-    FILE_CONTEXTS_FILE="$TMPN/${LABLE}_file_contexts"
-    FS_CONFIG_FILE="$TMPN/${LABLE}_fs_config"
-    for file in "$FILE_CONTEXTS_FILE" "$FS_CONFIG_FILE" ; do
-        [ -f "$file" ] && rm -f "$file"
-    done
-    {
-    find $TARGET_DIR | while read FILE
-    do
-        if [ -e "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" ] && [ -n "$3" ] ; then
-            OWNER=$($TOOLS/busybox stat -Z "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" | $TOOLS/busybox awk '/^S_Context/ {print $2}')
-            if [ -z "${OWNER}" ] ; then
-                OWNER=$($TOOLS/busybox stat -Z $(dirname "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}") | $TOOLS/busybox awk '/^S_Context/ {print $2}')
-            fi
-        elif [ -e "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" ] && [ -n "$4" ] ; then
-            OWNER=$($TOOLS/busybox stat -Z "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" | $TOOLS/busybox awk '/^S_Context/ {print $2}')
-            if [ -z "${OWNER}" ] ; then
-                OWNER=$($TOOLS/busybox stat -Z $(dirname "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}") | $TOOLS/busybox awk '/^S_Context/ {print $2}')
-            fi
-        else
-            OWNER=$($TOOLS/busybox stat -Z "$FILE" | $TOOLS/busybox awk '/^S_Context/ {print $2}')
-            if [ -z "${OWNER}" ] ; then
-                OWNER=$($TOOLS/busybox stat -Z $(dirname "$FILE") | $TOOLS/busybox awk '/^S_Context/ {print $2}')
-            fi
-        fi
-        FILE_FORMAT=$(echo "${FILE#$TARGET_DIR}" | $TOOLS/busybox awk '{ gsub(/\./, "\\."); gsub(/\ /, "\\ "); gsub(/\+/, "\\+"); gsub(/\[/, "\\["); print }')
-        if [ -d "${FILE}" ] ; then 
-            CONTEXT_LINE="/${LABLE}${FILE_FORMAT}(/.*)? ${OWNER}"
-            echo $CONTEXT_LINE >> "${FILE_CONTEXTS_FILE}"
-        fi
-            su_contects=false
-        for check_su_contects in "magisk.db" "denylist.txt" "sqlite3" "init.sh" "magisk" ; do 
-            if echo "${FILE#$TARGET_DIR}" | grep -q "$check_su_contects" ; then 
-               su_contects=true 
-            fi
-        done
-        if $su_contects ; then 
-            CONTEXT_LINE="/${LABLE}${FILE_FORMAT} u:r:su:s0"
-        else 
-            CONTEXT_LINE="/${LABLE}${FILE_FORMAT} ${OWNER}"
-        fi
-        if ! [ "${LABLE}${FILE#$TARGET_DIR}" == "${LABLE}" ] ; then
-            echo $CONTEXT_LINE >> "${FILE_CONTEXTS_FILE}"
-        fi
-        
-    done
-    } & {
-
-    find $TARGET_DIR | while read FILE
-    do
-        if ! [ "${LABLE}${FILE#$TARGET_DIR}" == "${LABLE}" ] ; then
-            if [ -e "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" ] && [ -n "$3" ]  ; then
-                PERMISSIONS_GROUPS=$($TOOLS/busybox stat -c "%u %g 0%a" "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}")
-                LINKER_FILE=$($TOOLS/busybox stat "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" | $TOOLS/busybox awk -F"'" '/->/ && !found {split($0, arr, "->"); gsub(/^[[:space:]]+|[[:space:]]+$/, "", arr[2]); gsub(/\ /, "\\ ", arr[2]); gsub(/[\047]/, "", arr[2]); print arr[2]; found=1}')
-            elif [ -e "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" ] && [ -n "$4" ]  ; then
-                PERMISSIONS_GROUPS=$($TOOLS/busybox stat -c "%u %g 0%a" "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}")
-                LINKER_FILE=$($TOOLS/busybox stat "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" | $TOOLS/busybox awk -F"'" '/->/ && !found {split($0, arr, "->"); gsub(/^[[:space:]]+|[[:space:]]+$/, "", arr[2]); gsub(/\ /, "\\ ", arr[2]); gsub(/[\047]/, "", arr[2]); print arr[2]; found=1}')
-            else
-                PERMISSIONS_GROUPS=$($TOOLS/busybox stat -c "%u %g 0%a" "$FILE")
-                LINKER_FILE=$($TOOLS/busybox stat "$FILE" | $TOOLS/busybox awk -F"'" '/->/ && !found {split($0, arr, "->"); gsub(/^[[:space:]]+|[[:space:]]+$/, "", arr[2]); gsub(/\ /, "\\ ", arr[2]); gsub(/[\047]/, "", arr[2]); print arr[2]; found=1}')
-            fi
-            
-            FILE_FORMAT=$(echo "${FILE#$TARGET_DIR}" | $TOOLS/busybox awk '{ gsub(/\ /, "\\ "); print }')
-            FS_CONFIG_LINE="${LABLE}${FILE_FORMAT} ${PERMISSIONS_GROUPS} ${LINKER_FILE}"
-            echo "$FS_CONFIG_LINE" >> "${FS_CONFIG_FILE}"
-        fi
-        
-    done
-    }
-    wait
-    $TOOLS/make_ext4fs -J -T 1230764400 \
-            -S "${FILE_CONTEXTS_FILE}" \
-            -l "$($TOOLS/busybox du -sb "${TARGET_DIR}" | $TOOLS/busybox awk '{print int($1*50)}')" \
-            -C "${FS_CONFIG_FILE}" -a "${LABLE}" -L "${LABLE}" \
-            "$TMPN/${LABLE}.img" "${TARGET_DIR}"
-
-    resize2fs -M $TMPN/${LABLE}.img
-    resize2fs -M $TMPN/${LABLE}.img
-    resize2fs -M $TMPN/${LABLE}.img
-    resize2fs -f $TMPN/${LABLE}.img "$(($(stat -c%s $TMPN/${LABLE}.img)*2/512))"s
-        
-
-}
 
 find_block_neo() {
     local found_blocks=()
@@ -493,6 +390,7 @@ find_block_neo() {
 export -f find_block_neo
 
 
+<<<<<<< HEAD
 check_config() {
     local CONFIG_NEO="$1"
     if [[ "$(grep "force_start=" "$CONFIG_NEO" | grep -v "#" | wc -l)" == "1" ]]; then
@@ -711,306 +609,12 @@ update_partitions(){
         fi
     fi
     done
+=======
+>>>>>>> 485a1d7 (.)
 
 
-    for CHECK_SLOT in 0 1 ; do 
-        for CHECK_SUFFIX in _a _b ; do
-            if $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map system$CHECK_SUFFIX &> $TMPN/outSlog ; then
-                if $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map vendor$CHECK_SUFFIX &> $TMPN/outVlog ; then
-                    if ! (grep "Creating dm partition for" $TMPN/outSlog &>$LOGNEO) && ! (grep "Creating dm partition for" $TMPN/outVlog &>$LOGNEO)  ; then
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
-                        continue
-                    fi
-                    if (grep "Could not map partition:" $TMPN/outSlog &>$LOGNEO) && (grep "Could not map partition:" $TMPN/outVlog &>$LOGNEO) ; then
-                        continue
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
-                    fi
-                    
-                    DM_PATHS=$(grep "Creating dm partition for" $TMPN/outSlog | awk '{print $9}')
-                    DM_PATHV=$(grep "Creating dm partition for" $TMPN/outVlog | awk '{print $9}')
 
-                    if [[ -n "$DM_PATHS" ]] ; then 
-                        [ -d $TMPN/mount_test ] || mkdir $TMPN/mount_test
-                        if ! mount -r $DM_PATHS $TMPN/mount_test &>$LOGNEO ; then
-                            if ! mount -r $DM_PATHS $TMPN/mount_test &>$LOGNEO ; then
-                                if ! mount -r $DM_PATHS $TMPN/mount_test &>$LOGNEO ; then 
-                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
-                                    continue
-                                fi 
-                            fi 
-                        fi
-                    else 
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
-                        continue 
-                    fi 
-                    umount -fl $DM_PATHS &>$LOGNEO
-                    umount -fl $DM_PATHS &>$LOGNEO
-                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                    if [[ -n "$DM_PATHV" ]] ; then 
-                        [ -d $TMPN/mount_test ] || mkdir $TMPN/mount_test
-                        if ! mount -r $DM_PATHV $TMPN/mount_test &>$LOGNEO ; then
-                            if ! mount -r $DM_PATHV $TMPN/mount_test &>$LOGNEO ; then
-                                if ! mount -r $DM_PATHV $TMPN/mount_test &>$LOGNEO ; then 
-                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
-                                    continue
-                                fi 
-                            fi 
-                        fi
-                    else 
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
-                        continue 
-                    fi 
-                    umount -fl $DM_PATHV &>$LOGNEO
-                    umount -fl $DM_PATHV &>$LOGNEO
-                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
-                    
-                    
-                    ACTIVE_SLOT_SUFFIX+="$CHECK_SLOT:$CHECK_SUFFIX "
-                else 
-                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
-                fi
-            else
-                $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-            fi
-        done 
-    done
 
-    echo "$ACTIVE_SLOT_SUFFIX" &>$LOGNEO
-    case "${ACTIVE_SLOT_SUFFIX// /}" in 
-    "0:_a1:_a"|"0:_a") 
-        export FINAL_ACTIVE_SLOT=0
-        export FINAL_ACTIVE_SUFFIX=_a
-    ;;
-    "0:_b1:_b"|"1:_b") 
-        export FINAL_ACTIVE_SLOT=1
-        export FINAL_ACTIVE_SUFFIX=_b
-    ;;
-    "0:_a1:_b")
-        if grep -q "source_slot: A" /tmp/recovery.log && grep -q "target_slot: B" /tmp/recovery.log ; then
-        export FINAL_ACTIVE_SLOT=1
-        export FINAL_ACTIVE_SUFFIX=_b
-        elif grep -q "target_slot: B" /tmp/recovery.log && grep -q "source_slot: A" /tmp/recovery.log ; then
-        export FINAL_ACTIVE_SLOT=0
-        export FINAL_ACTIVE_SUFFIX=_a
-        else
-        export FINAL_ACTIVE_SLOT=$SLOTCURRENT
-        export FINAL_ACTIVE_SUFFIX=$SUFFIXCURRENT
-        fi
-    ;;
-    "0:_a0:_b1_:a1:_b")
-        my_print " !!!!!!!!! " 
-        
-        if ! $force_start ; then 
-        my_print "- $word93"
-            my_print "    $word94" -s
-            my_print "    $word95" -s
-            if volume_selector ; then 
-                export FINAL_ACTIVE_SLOT=0
-                export FINAL_ACTIVE_SUFFIX=_a
-            else
-                export FINAL_ACTIVE_SLOT=1
-                export FINAL_ACTIVE_SUFFIX=_b
-            fi
-        else 
-            my_print "- $word96"
-            exit 119
-        fi
-    ;;
-    *)
-    exit 118
-    ;;
-    esac 
-    for suffix_for in _a _b ; do 
-        for file_for_mapper in /dev/block/mapper/*$suffix_for ; do
-                $TOOLS/lptools_new --super $super_block --slot 0 --suffix $suffix_for --unmap $file_for_mapper &>$LOGNEO
-                $TOOLS/lptools_new --super $super_block --slot 1 --suffix $suffix_for --unmap $file_for_mapper &>$LOGNEO
-        done
-    done
-    for partition in $($TOOLS/lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | awk '{print $1}') ; do
-        name_part=${partition/"NamePartInGroup->"/}
-        echo "$name_part" &>$LOGNEO
-        if $TOOLS/lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --map $name_part > $TMPN/outlog ; then
-            cat $TMPN/outlog
-            DM_PATH=$(grep "Creating dm partition for" $TMPN/outlog | awk '{print $9}')
-            name_part_without_suffix=$(basename ${name_part%"$FINAL_ACTIVE_SUFFIX"*})
-            if [ "$name_part_without_suffix" == "system" ] ; then 
-            name_part_without_suffix=system_root
-            fi
-            echo "$name_part_without_suffix" &>$LOGNEO
-            echo "$DM_PATH /$name_part_without_suffix auto ro 0 0" >> /etc/fstab
-            sleep 1
-        fi
-
-    done
-   
-    echo 4 &>$LOGNEO
-    if ! [[ "$SLOTCURRENT" == "$FINAL_ACTIVE_SLOT" ]] ; then
-        $TOOLS/magisk resetprop ro.boot.slot_suffix $FINAL_ACTIVE_SUFFIX
-        grep androidboot.slot_suffix /proc/bootconfig && {
-            echo 5 &>$LOGNEO
-            edit_text="$(cat /proc/bootconfig | sed 's/androidboot.slot_suffix = "'$SUFFIXCURRENT'"/androidboot.slot_suffix = "'$FINAL_ACTIVE_SUFFIX'"/')"
-            echo -e "$edit_text" > $TMPN/bootconfig_new 
-            # my_print 1
-            mount $TMPN/bootconfig_new /proc/bootconfig &>$LOGNEO
-        }
-        echo 7 &>$LOGNEO
-        grep "androidboot.slot_suffix=$SUFFIXCURRENT" /proc/cmdline && {
-            edit_text="$(cat /proc/cmdline | sed 's/androidboot.slot_suffix='$SUFFIXCURRENT'/androidboot.slot_suffix='$FINAL_ACTIVE_SUFFIX'/')"
-            echo -e "$edit_text" > $TMPN/cmdline_new 
-            # my_print 2
-            mount $TMPN/cmdline_new /proc/cmdline &>$LOGNEO
-        }
-        echo 8 &>$LOGNEO
-        grep "androidboot.slot=$SUFFIXCURRENT" /proc/cmdline && {
-            edit_text="$(cat /proc/cmdline | sed 's/androidboot.slot='$SUFFIXCURRENT'/androidboot.slot='$FINAL_ACTIVE_SUFFIX'/')"
-            echo -e "$edit_text" > $TMPN/cmdline_new2 
-            # my_print 3
-            mount $TMPN/cmdline_new2 /proc/cmdline &>$LOGNEO
-        }
-        for part_link_to_slot in $(find /dev/block -name by-name) ; do
-        #   my_print "$part_link_to_slot"
-        echo 1 &>$LOGNEO
-            for files_in_blockdev in $part_link_to_slot/*$SUFFIXCURRENT ; do
-            # my_print "$files_in_blockdev"
-            echo 2 &>$LOGNEO
-            files_in_blockdev_suff=${files_in_blockdev%"$SUFFIXCURRENT"*}
-            #   my_print "$files_in_blockdev_suff"
-            if [ -h $files_in_blockdev_suff ] ; then
-            #   my_print "- rm -rf $files_in_blockdev_suff " 
-                echo  "$(basename $files_in_blockdev_suff)$FINAL_ACTIVE_SUFFIX" $files_in_blockdev_suff &>$LOGNEO
-                rm -rf $files_in_blockdev_suff 
-                ln -sf "$(basename $files_in_blockdev_suff)$FINAL_ACTIVE_SUFFIX" $files_in_blockdev_suff
-            fi
-            done
-
-        done
-        if $bootctl_state ; then
-            $TOOLS/bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
-        fi
-    
-    fi
-
-    return 0 
-
-}
-
-remove_dfe_neo(){
-    boot_detect_truefalse=$1
-    super_detect_truefalse=$2
-    
-    
-    if $super_detect_truefalse ; then
-        if [[ -n "$FINAL_ACTIVE_SLOT" ]] ; then 
-            $TOOLS/lptools_new --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --super $super_block --remove "neo_inject$FINAL_ACTIVE_SUFFIX" &>$LOGNEO
-        else
-            $TOOLS/lptools_new --super $super_block --remove "neo_inject" &>$LOGNEO
-        fi
-        
-    fi
-
-    for boot_sda in vendor_boot boot; do
-        if [[ "$boot_sda" == "boot" ]] && ! find_block_neo -c -b recovery${CSLOT} ; then
-            continue
-        else
-            if [[ "$boot_sda" == "boot" ]] && ! find_block_neo -c -b recovery ; then
-                continue
-            else
-                for block in $(find_block_neo -b ${boot_sda}${CSLOT}); do
-
-                    basename_block="${boot_sda}${CSLOT}"
-                    my_print "- $word50 ${boot_sda}${CSLOT}" && {
-                        work_folder="$TMPN/${basename_block}_remove"
-                        row_ramdisk=false
-
-                        $TOOLS/toybox mkdir -pv $work_folder
-                        cd "$work_folder"
-                    }
-
-                    # Распковка блока
-                    # word26="Распаковка"
-                    my_print "- $word26 $basename_block" && {
-                        # word27="Не удалось распаковать"
-                        $TOOLS/magiskboot unpack -h $block &>$work_folder/log.unpack.boot || {
-                        if [[ -n "$CSLOT" ]] ; then
-                            abort_neo -e "28.1" -m "$word27 boot($basename_block)" 
-                        else
-                            continue
-                        fi
-                        }    
-
-                        if $TOOLS/toybox grep "RAMDISK_FMT" $work_folder/log.unpack.boot | $TOOLS/toybox grep "raw" &>$LOGNEO; then
-                            # word28="Ramdisk сжат, декомпрессия..."
-                            my_print "- $word28" && {
-                                $TOOLS/magiskboot decompress $work_folder/ramdisk.cpio $work_folder/ramdisk.decompress.cpio &>$work_folder/log.decompress.ramdisk &&
-                                    row_ramdisk=true ||
-                                    abort_neo -e 28.2 -m "$word29" # word29="Не получилось декмопресировать ramdisk"
-                                $TOOLS/toybox mv $work_folder/ramdisk.decompress.cpio $work_folder/ramdisk.cpio
-                                ramdisk_compress_format=$($TOOLS/toybox grep "Detected format:" $work_folder/log.decompress.ramdisk | $TOOLS/toybox sed 's/.*\[\(.*\)\].*/\1/')
-                            }
-
-                        fi
-
-                        if ! [[ -f "$work_folder/ramdisk.cpio" ]] && ! [[ -f "$work_folder/log.unpack.boot" ]]; then
-                            # word30="Файл Ramdisk и файл журнала не найдены"
-                            my_print "- $word30"
-                            continue
-                        fi
-                    }
-                    if [[ -f "$work_folder/ramdisk.cpio" ]]; then
-                        # word31="Распаковка ramdsik.cpio"
-                        my_print "- $word31" && {
-                            mkdir $work_folder/ramdisk
-                            cd $work_folder/ramdisk
-                            "$TOOLS"/magiskboot cpio "$work_folder/ramdisk.cpio" extract &>$LOGNEO
-                            cd $work_folder
-                            for fstab in $(find "$work_folder/ramdisk/" -name "fstab.*"); do
-                                if $TOOLS/toybox grep -w "/system" $fstab | $TOOLS/toybox grep -q "first_stage_mount"; then
-                                    # word32="Патчинг fstab для first_stage"
-                                    my_print "- $word51 $(basename "$fstab")" && {
-                                        grep -q "/venodr/etc/init/hw" "$fstab" && {
-                                            sed -i '/\/venodr\/etc\/init\/hw/d' "$fstab"
-                                        }
-                                        grep -q "/vendor/etc/init/hw" "$fstab" && {
-                                            sed -i '/\/vendor\/etc\/init\/hw/d' "$fstab"
-                                        }
-                                        grep -q "/system/etc/init/hw" "$fstab" && {
-                                            sed -i '/\/system\/etc\/init\/hw/d' "$fstab"
-                                        }
-                                        $TOOLS/magiskboot cpio "$work_folder/ramdisk.cpio" "add 777 ${fstab//$work_folder\/ramdisk\//} $fstab" &>$LOGNEO
-                                    }
-
-                                fi
-                            done
-                        }
-                    else
-                        # word33="Ramdisk.cpio файл не найден, пропуск..."
-                        my_print "- $word33"
-                        cd ../..
-                        $TOOLS/toybox rm -rf $work_folder
-                        continue
-                    fi
-                    if $row_ramdisk; then
-                        # word34="Запаковка файлов ramdisk обратно в:"
-                        my_print "- $word34 $ramdisk_compress_format"
-                        "$TOOLS"/magiskboot compress="${ramdisk_compress_format}" "$work_folder/ramdisk.cpio" "$work_folder/ramdisk.compress.cpio" &>$LOGNEO || abort_neo -e 29.1 -m "$word41" # word41="Не удалось компресировать ramdisk"
-                        rm -f "$work_folder/ramdisk.cpio"
-                        mv "$work_folder/ramdisk.compress.cpio" "$work_folder/ramdisk.cpio"
-                    fi
-                    cd $work_folder
-                    # word35="Ребилт и установка"
-                    my_print "- $word35" && {
-                        $TOOLS/magiskboot repack $block &>$LOGNEO
-                        cat $work_folder/new-boot.img >$block
-                    }
-                done
-            fi
-        fi
-    done 
-}
 
 
 my_print "- $NEO_VERSION"
