@@ -16,7 +16,7 @@ source volume_selector_function
 
 
 
-my_print "- Определение переменных"
+my_print "- Определение стандартных переменных"
 source set_default_args
 source set_languages
 
@@ -42,36 +42,115 @@ else
 fi
 
 
-#my_print "- Чтение пропов и определние переменных"
-my_print "- $word2" && {
-    export CSLOT=$(getprop ro.boot.slot_suffix)
-    if [ -z $CSLOT ]; then
-        CSLOT=$(grep_cmdline androidboot.slot_suffix)
-        if [ -z $CSLOT ]; then
-            CSLOT=$(grep_cmdline androidboot.slot)
-        fi
+my_print "- Чтение пропов и определние переменных"
+CSUFFIX=$(getprop ro.boot.slot_suffix)
+if [ -z $CSUFFIX ]; then
+    CSUFFIX=$(grep_cmdline androidboot.slot_suffix)
+    if [ -z $CSUFFIX ]; then
+        CSUFFIX=$(grep_cmdline androidboot.slot)
     fi
-    case "$CSLOT" in
-        "_a") CSLOT="_a" ;;
-        "_b") CSLOT="_b" ;;
-        *) CSLOT="" ;;
-    esac
-    my_print "- Проверка доступтности для устройства" && {
-        for check_support_boot in vendor_boot boot ; do 
-            if [[ -z "$CSLOT" ]] ; then
-                
-                if [[ -h "/dev/block/by-name/$check_support_boot" ]] ; then
-                    check_support_boot="/dev/block/by-name/$check_support_boot"
-                elif [[ -h "/dev/block/bootdevice/by-name/$check_support_boot" ]] ; then
-                    check_support_boot="/dev/block/bootdevice/by-name/$check_support_boot"
-                fi
+fi
+case "$CSUFFIX" in
+    "_a") 
+    CSUFFIX="_a" 
+    RCSUFFIX="_b" 
+    ;;
+    "_b") 
+    CSUFFIX="_b" 
+    RCSUFFIX="_b" 
+    ;;
+    *) 
+    CSUFFIX="" 
+    ;;
+esac
 
-            fi
-    }
-    export super_block=$(find_super_partition)
-    if [[ -z "$super_block" ]] ; then
-        abort_neo -e "24.1" -m "$word3"
+if [[ -n "$CSLOT" ]] ; then
+    my_print " "
+    my_print "- Устройства A/B"
+    my_print "- Текущий слот: $CSLOT"
+    AONLY=false
+else
+    my_print "- Устройство A-only"
+    AONLY=true
+fi
+
+my_print "- Проверка на наличие super раздела"
+
+SUPER_BLOCK=$(find_super_partition)
+if [[ -z "$super_block" ]] ; then
+    my_print "- Раздел super не найден"
+    SUPER_THIS=false
+else
+    my_print "- Раздел super найден по пути:"
+    my_print "   $SUPER_BLOCK"
+    SUPER_THIS=true
+fi
+
+if ! $SUPER_THIS && $AONLY ; then
+    abort_neo -e "9.1" -m "Текущая версия DFE-NEO не поддерживает A-only и устройства без super раздела одновременно"
+fi
+my_print "- Поиск recovery раздела"
+if find_block_neo -c -b "recovery" "recovery_a" "recovery_b" ; then
+    my_print "- Recovery раздел найден. Будет легко"
+    RECOVERY_THIS=true
+else
+    my_print "- Recovery раздел не найден, будет сложнее"
+    RECOVERY_THIS=false
+fi
+my_print "- Поиск vendor_boot раздела"
+if find_block_neo -c -b "vendor_boot" "vendor_boot_a" "vendor_boot_b" ; then
+    my_print "- Vendor_boot раздел найден. Будет легко"
+    BOOT_PATCH+="vendor_boot"
+    VBOOT_THIS=true
+else
+    if ! $RECOVERY_THIS ; then 
+        my_print "- Vendor_boot раздел не найден, будет еще сложнее"
+    else
+        my_print "- Vendor_boot раздел не найден, будет сложнее"
     fi
+    VBOOT_THIS=false
+fi
+my_print "- Проверка возможности интеграции NEOv2 метода"
+
+if $SUPER_THIS && ! $AONLY ; then
+    case "$WHERE_INSTALLING" in 
+        kernelsu|magiskapp)
+            source run_install_SSAB
+        ;;
+        recovery)
+            source run_install_RSAB
+        ;;
+        *)
+            abort_neo -e 10.1 -m "Скрипт запущен неправильно, как ты сюда попал?"
+        ;;
+    esac
+elif $SUPER_THIS && $AONLY ; then
+    case "$WHERE_INSTALLING" in 
+        kernelsu|magiskapp)
+            source run_install_SSA
+        ;;
+        recovery)
+            source run_install_RSA
+        ;;
+        *)
+            abort_neo -e 10.1 -m "Скрипт запущен неправильно, как ты сюда попал?"
+        ;;
+    esac 
+elif ! $SUPER_THIS && ! $AONLY ; then
+    case "$WHERE_INSTALLING" in 
+        kernelsu|magiskapp)
+            source run_install_SAB
+        ;;
+        recovery)
+            source run_install_RAB
+        ;;
+        *)
+            abort_neo -e 10.1 -m "Скрипт запущен неправильно, как ты сюда попал?"
+        ;;
+    esac 
+fi
+
+    
 
     install_after_ota=false
     if find_block_neo -c -b boot_a && find_block_neo -c -b boot_b && $SYS_STATUS ; then
@@ -529,7 +608,7 @@ my_print "- $word2" && {
     ;;
     esac
     
-}
+
 my_print " "
 
 
