@@ -1,251 +1,40 @@
-#!/bin/bash
-
-export TOOLS=$TMP_TOOLS/binary/$ARCH
-export LD_LIBRARY_PATH=$TMP_TOOLS/binary/$ARCH:$LD_LIBRARY_PATH
-
-# DONT TOUCH IT!! 
-remove_pin=false       # true / false
-wipe_data=false        # true / false
-magisk=false
-where_to_inject=false
-where_to_inject_auto=""
-MAGISK_ZIP=""
-NEO_VERSION="DFE NEO 2.5.x"
-LOGNEO="$TMPN/outneo.log"
-
-if [[ -n "$EXEMPLE_VERSION" ]] ; then
-    NEO_VERSION="DFE-NEO $EXEMPLE_VERSION"
-fi
+# $WHEN_INSTALLING - Константа, объявлена в update-binary. magiskapp/kernelsu/recovery
+# $TMPN - Константа, объявлена в update-binary. Путь к основному каталогу neo data/local/TMPN/...
+# $ZIP - Константа, объявлена в update-binary. Путь к основному tmp.zip файлу neo $TMPN/zip/DFENEO.zip
+# $TMP_TOOLS - Константа, объявлена в update-binary. Путь к каталогу с подкаталогами бинарников $TMPN/unzip/META-INF/tools. В нем каталоги binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $ARCH - Константа, объявлена в update-binary. Архитектура устройства [arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $TOOLS - Константа, объявлена в update-binary. Путь к каталогу с бинарниками $TMP_TOOLS/binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
 
 
-if echo "$(basename "$ZIPARG3")" | $TOOLS/busybox grep -qi "extconfig"; then
-    if [[ -f "$(dirname "$ZIPARG3")/NEO.config" ]]; then
-            languages="$(grep "languages=" "$(dirname "$ZIPARG3")/NEO.config")"
-            languages=${languages#*"="}
-    else
-        languages="$(grep "languages=" "$TMPN/unzip/NEO.config" )"
-        languages=${languages#*"="}
-    fi
-else
-    languages="$(grep "languages=" "$TMPN/unzip/NEO.config" )"
-    languages=${languages#*"="}
-fi
+source $TMP_TOOLS/include/add_binary_to_PATH.sh
+type my_print || exit 79
+
+my_print "- Определение функций"
+
+source abort_neo_function
+source volume_selector_function
 
 
 
-
-if ! [[ -f "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" ]] ; then
-    my_print "- $languages.sh language file not found. English will be used"
-    languages=en
-    ! [[ -f "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" ]] && {
-        abort_neo -e "23.27" -m "English language file not found, WHAT THE FUCK????"
-    }
-fi
-sed -i 's/\r$//' "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh"
-source "$TMPN/unzip/META-INF/tools/languages/$languages/$languages.sh" || abort_neo -e "23.31" -m "Failed to read language file"
+my_print "- Определение переменных"
+source set_default_args
+source set_languages
 
 
-
-
-
-my_out_print(){
-        
-    ALL_WORDS="$1"
-    ALL_WORDS=${ALL_WORDS// /"--SPACE--"}
-    if [[ -n "$TERMINAL_SIZE" ]] ; then
-        MAXLEN=$(( $TERMINAL_SIZE - 3 ))
-    else
-        MAXLEN=45
-    fi
-    case "$languages" in
-        zh|hi)
-            MAXLEN=$(( $MAXLEN / 2 ))
-        ;;
-    esac
-    if [[ -n "$2" ]] && [[ "$2" == "-s" ]] ; then 
-        FIRST_LINE=false
-        NULL_FIRST_LINE=true
-    else
-        FIRST_LINE=true
-        NULL_FIRST_LINE=false
-    fi
-    while true ; do
-        if $FIRST_LINE ; then
-            case "$out_words" in 
-                "- "*)
-                    FIRST_LINE_WORD=""
-                ;;
-                "-"*)
-                    FIRST_LINE_WORD=" "
-                ;;
-                *)
-                    FIRST_LINE_WORD="- "
-                ;;
-            esac
-        else 
-            if $NULL_FIRST_LINE ; then
-                FIRST_LINE_WORD=""
-            else
-                FIRST_LINE_WORD="  "
-            fi
-        fi
-        if (( $( echo -n "$out_words" | wc -m ) > $MAXLEN )) ; then
-            if [[ $WHEN_INSTALLING == "recovery" ]] ; then
-                echo -e "ui_print ${FIRST_LINE_WORD}${out_words}\nui_print" >>"/proc/self/fd/$ZIPARG2"
-            else
-                echo -e "${FIRST_LINE_WORD}${out_words}"
-            fi
-            FIRST_LINE=false
-            out_words=""
-        else
-            bak_out_words=$out_words
-            if [[ "$ALL_WORDS" == "${ALL_WORDS%%"--SPACE--"*}" ]] ; then
-                if [[ $WHEN_INSTALLING == "recovery" ]] ; then
-                    echo -e "ui_print ${FIRST_LINE_WORD}$ALL_WORDS\nui_print" >>"/proc/self/fd/$ZIPARG2"
-                else
-                    echo -e "${FIRST_LINE_WORD}$ALL_WORDS"
-                fi
-                break
-            fi
-            
-            out_words+="${ALL_WORDS%%"--SPACE--"*} "
-            if (( $( echo -n "$out_words" | wc -m ) > $MAXLEN + 3 )) ; then
-                if [[ -z $bak_out_words ]] ; then 
-                    if [[ $WHEN_INSTALLING == "recovery" ]] ; then
-                        echo -e "ui_print ${FIRST_LINE_WORD}${out_words}\nui_print" >>"/proc/self/fd/$ZIPARG2"
-                    else
-                        echo -e "${FIRST_LINE_WORD}${out_words}"
-                    fi
-                    FIRST_LINE=false
-                    ALL_WORDS="${ALL_WORDS#*"--SPACE--"}"
-                else
-                    if [[ $WHEN_INSTALLING == "recovery" ]] ; then
-                        echo -e "ui_print ${FIRST_LINE_WORD}${bak_out_words}\nui_print" >>"/proc/self/fd/$ZIPARG2"
-                        else
-                        echo -e "${FIRST_LINE_WORD}${bak_out_words}"
-                    fi
-                    FIRST_LINE=false
-                fi
-                out_words=""
-            else
-                ALL_WORDS="${ALL_WORDS#*"--SPACE--"}"
-            fi
-        fi
-    done
-
-}
-
-
-
-
-
-find_block_neo() {
-    local found_blocks=()
-    local block_names=()
-    check_status_o=false
-    while [ $# -gt 0 ]; do
-        case "$1" in
-        -c)
-        check_status_o=true
-        shift 1
-        ;;
-        -b)
-            shift 1
-            if [[ $# -gt 0 && ${1:0:1} != "-" ]]; then
-                while [[ $# -gt 0 && ${1:0:1} != "-" ]]; do
-                    block_names+=("$1")
-                    shift 1
-                done
-            fi
-            ;;
-        *)
-            echo "Unknown parameter: $1" &>$LOGNEO
-            exit 1
-            ;;
-        esac
-    done
-
-    for block in "${block_names[@]}"; do
-        # my_print "- Searching for block $block"
-        if [ -h /dev/block/by-name/$block ]; then
-            if ! [ -h "$(readlink /dev/block/by-name/$block)" ] && [ -b "$(readlink /dev/block/by-name/$block)" ]; then
-                found_blocks+=("$(readlink /dev/block/by-name/$block)")
-            fi
-        elif [ -b /dev/block/mapper/$block ]; then
-            if ! [ -h "$(readlink /dev/block/mapper/$block)" ] && [ -b "$(readlink /dev/block/mapper/$block)" ]; then
-                found_blocks+=("$(readlink /dev/block/mapper/$block)")
-            fi
-        elif [ -h /dev/block/bootdevice/by-name/$block ]; then
-            if ! [ -h "$(readlink /dev/block/bootdevice/by-name/$block)" ] && [ -b "$(readlink /dev/block/bootdevice/by-name/$block)" ]; then
-                found_blocks+=("$(readlink /dev/block/bootdevice/by-name/$block)")
-            fi
-        fi
-    done
-    if [[ -z "$found_blocks" ]] ; then
-     return 1 
-    else
-     if $check_status_o ; then
-      return 0
-     else
-      echo "${found_blocks[@]}"
-     fi
-    fi
-}
-export -f find_block_neo
-
-
-
-
-
-
-
-
+# Версия программы
 my_print "- $NEO_VERSION"
-my_print "- $word52" && {
-    if echo "$(basename "$ZIPARG3")" | $TOOLS/busybox grep -qi "extconfig"; then
-        if [[ -f "$(dirname "$ZIPARG3")/NEO.config" ]]; then
-            my_print "- $word53" && {
-                sed -i 's/\r$//' "$(dirname "$ZIPARG3")/NEO.config"
-                check_config "$(dirname "$ZIPARG3")/NEO.config" || abort_neo -e 23.1 -m "The config is configured incorrectly"
-                cat "$(dirname "$ZIPARG3")/NEO.config" > $TMPN/config.sh
-                sed -i 's/$/ #/g' $TMPN/config.sh
-                
-                source $TMPN/config.sh || abort_neo -e "23.11" -m "Failed to read config file"
-            }
-        else
-            my_print "- $word54"
-            sed -i 's/\r$//' "$TMPN/unzip/NEO.config"
-            check_config "$TMPN/unzip/NEO.config" || abort_neo -e 23.2 -m "The config is configured incorrectly"
-            cat "$TMPN/unzip/NEO.config" > $TMPN/config.sh
-            sed -i 's/$/ #/g' $TMPN/config.sh
-            
-            source $TMPN/config.sh || abort_neo -e "23.21" -m "Failed to read config file"
-        fi
-    else
-        sed -i 's/\r$//' "$TMPN/unzip/NEO.config"
-        check_config "$TMPN/unzip/NEO.config" || abort_neo -e 23.3 -m "The config is configured incorrectly"
-        cat "$TMPN/unzip/NEO.config" > $TMPN/config.sh
-        sed -i 's/$/ #/g' $TMPN/config.sh
-        source $TMPN/config.sh || abort_neo -e "23.31" -m "Failed to read config file"  
-    fi
-}
 
-find_super_partition(){
-for blocksuper in /dev/block/by-name/* /dev/block/bootdevice/by-name/* /dev/block/bootdevice/* /dev/block/* ; do
-    if $TOOLS/lptools_new --super $blocksuper --get-info &>/dev/null; then
-        echo "$blocksuper"
-        break
-    fi    
-done 
+my_print "- Чтение конфигурации"
+source read_config
 
-}
-$TOOLS/bootclt $>$LOGNEO
+
+bootclt $>$LOGNEO
 if [[ "$?" == "64" ]] ; then
     bootctl_state=true
 else
     bootctl_state=false
 fi
-$TOOLS/snapshotctl $>$LOGNEO
+snapshotctl $>$LOGNEO
 if [[ "$?" == "64" ]] ; then
     snapshotctl_state=true
 else

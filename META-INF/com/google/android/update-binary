@@ -83,11 +83,19 @@ abort_neo() {
     }
 }
 
+# $WHERE_INSTALLING - Константа, объявлена в update-binary. magiskapp/kernelsu/recovery
+# $TMPN - Константа, объявлена в update-binary. Путь к основному каталогу neo data/local/TMPN/...
+# $ZIP - Константа, объявлена в update-binary. Путь к основному tmp.zip файлу neo $TMPN/zip/DFENEO.zip
+# $TMP_TOOLS - Константа, объявлена в update-binary. Путь к каталогу с подкаталогами бинарников $TMPN/unzip/META-INF/tools. В нем каталоги [arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $ARCH - Константа, объявлена в update-binary. Архитектура устройства [arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $TOOLS - Константа, объявлена в update-binary. Путь к каталогу с бинарниками $TMP_TOOLS/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $LOGNEO - Константа, объявлена в update-binary. Путь к лог файлу
+
 # Check for unzip binary presence, otherwise abort
 # Проверка наличия двоичного файла unzip, в противном случае прервать
 case "$(realpath "$0" )" in
   *data*user*flash*update-binary*)
-    export WHEN_INSTALLING=magiskapp
+    export WHERE_INSTALLING=magiskapp
     export TMPN="/data/local/dfeneov2_tmp" 
     export ZIP="/data/local/dfeneov2_tmp/zip/DFENEO.zip" 
     export TMP_TOOLS="/data/local/dfeneov2_tmp/unzip/META-INF/tools"
@@ -97,12 +105,12 @@ case "$(realpath "$0" )" in
       export TMPN="/data/local/dfeneov2_tmp" 
       export ZIP="/data/local/dfeneov2_tmp/zip/DFENEO.zip" 
       export TMP_TOOLS="/data/local/dfeneov2_tmp/unzip/META-INF/tools"
-      export WHEN_INSTALLING=kernelsu
+      export WHERE_INSTALLING=kernelsu
     else
       export TMPN="/tmp/dfeneov2_tmp" 
       export ZIP="/tmp/dfeneov2_tmp/zip/DFENEO.zip" 
       export TMP_TOOLS="/tmp/dfeneov2_tmp/unzip/META-INF/tools"
-      export WHEN_INSTALLING=recovery
+      export WHERE_INSTALLING=recovery
     fi
   ;;
 esac
@@ -155,12 +163,14 @@ for ARCH_T in arm64-v8a armeabi-v7a x86_64 x86 ; do
         }
     fi
 done
-if [[ -z $ARCH ]] ; then
-    abort_neo -e "20.6" -m "For some reason, the bash binary is missing in dfe-neo"
+
+if [[ -z $ARCH ]] ; then 
+  abort_neo -e "20.7" -m "No supported binary files for your architecture. Device is not supported"
+else 
+  export TOOLS=$TMP_TOOLS/binary/$ARCH
+  export LD_LIBRARY_PATH=$TMP_TOOLS/binary/$ARCH:$LD_LIBRARY_PATH
+  [[ -f "$TMP_TOOLS/install.sh" ]] || abort_neo -e "20.8" -m "For some reason, the installation .sh file is missing"
+  $TMP_TOOLS/binary/$ARCH/bash $TMP_TOOLS/install.sh || exit $?
 fi
-[[ -z $ARCH ]] && { abort_neo -e "20.7" -m "No supported binary files for your architecture. Device is not supported" ; } || {
-    [[ -f "$TMP_TOOLS/install.sh" ]] || abort_neo -e "20.8" -m "For some reason, the installation .sh file is missing"
-    $TMP_TOOLS/binary/$ARCH/bash $TMP_TOOLS/install.sh || exit $?
-}
 
 exit 0
