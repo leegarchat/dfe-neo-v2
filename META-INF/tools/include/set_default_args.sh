@@ -38,8 +38,14 @@ done
 # lng.sh аргументы    /\--------------------/\
 
 
-# info аргументы      \/--------------------\/
+# info аргументы      \/--------------------\/\
+export BOOT_PATCH="boot"
+export SUPER_THIS=""
+export SUPER_BLOCK=""
+export AONLY=""
 export bootctl_state=""
+export CSUFFIX=""
+export RCSUFFIX=""
 export snapshotctl_state=""
 export languages=""
 export NEO_VERSION="DFE NEO 2.5.x"
