@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #!/bin/bash
 
 export TOOLS=$TMP_TOOLS/binary/$ARCH
@@ -389,6 +390,14 @@ find_block_neo() {
 }
 export -f find_block_neo
 
+=======
+# $WHEN_INSTALLING - Константа, объявлена в update-binary. magiskapp/kernelsu/recovery
+# $TMPN - Константа, объявлена в update-binary. Путь к основному каталогу neo data/local/TMPN/...
+# $ZIP - Константа, объявлена в update-binary. Путь к основному tmp.zip файлу neo $TMPN/zip/DFENEO.zip
+# $TMP_TOOLS - Константа, объявлена в update-binary. Путь к каталогу с подкаталогами бинарников $TMPN/unzip/META-INF/tools. В нем каталоги binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $ARCH - Константа, объявлена в update-binary. Архитектура устройства [arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $TOOLS - Константа, объявлена в update-binary. Путь к каталогу с бинарниками $TMP_TOOLS/binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+>>>>>>> 09d7e2e (Фиксация от 05.03 23:31)
 
 <<<<<<< HEAD
 check_config() {
@@ -612,57 +621,35 @@ update_partitions(){
 =======
 >>>>>>> 485a1d7 (.)
 
+source $TMP_TOOLS/include/add_binary_to_PATH.sh
+type my_print || exit 79
+
+my_print "- Определение функций"
+
+source abort_neo_function
+source volume_selector_function
 
 
 
+my_print "- Определение переменных"
+source set_default_args
+source set_languages
 
 
+# Версия программы
 my_print "- $NEO_VERSION"
-my_print "- $word52" && {
-    if echo "$(basename "$ZIPARG3")" | $TOOLS/busybox grep -qi "extconfig"; then
-        if [[ -f "$(dirname "$ZIPARG3")/NEO.config" ]]; then
-            my_print "- $word53" && {
-                sed -i 's/\r$//' "$(dirname "$ZIPARG3")/NEO.config"
-                check_config "$(dirname "$ZIPARG3")/NEO.config" || abort_neo -e 23.1 -m "The config is configured incorrectly"
-                cat "$(dirname "$ZIPARG3")/NEO.config" > $TMPN/config.sh
-                sed -i 's/$/ #/g' $TMPN/config.sh
-                
-                source $TMPN/config.sh || abort_neo -e "23.11" -m "Failed to read config file"
-            }
-        else
-            my_print "- $word54"
-            sed -i 's/\r$//' "$TMPN/unzip/NEO.config"
-            check_config "$TMPN/unzip/NEO.config" || abort_neo -e 23.2 -m "The config is configured incorrectly"
-            cat "$TMPN/unzip/NEO.config" > $TMPN/config.sh
-            sed -i 's/$/ #/g' $TMPN/config.sh
-            
-            source $TMPN/config.sh || abort_neo -e "23.21" -m "Failed to read config file"
-        fi
-    else
-        sed -i 's/\r$//' "$TMPN/unzip/NEO.config"
-        check_config "$TMPN/unzip/NEO.config" || abort_neo -e 23.3 -m "The config is configured incorrectly"
-        cat "$TMPN/unzip/NEO.config" > $TMPN/config.sh
-        sed -i 's/$/ #/g' $TMPN/config.sh
-        source $TMPN/config.sh || abort_neo -e "23.31" -m "Failed to read config file"  
-    fi
-}
 
-find_super_partition(){
-for blocksuper in /dev/block/by-name/* /dev/block/bootdevice/by-name/* /dev/block/bootdevice/* /dev/block/* ; do
-    if $TOOLS/lptools_new --super $blocksuper --get-info &>/dev/null; then
-        echo "$blocksuper"
-        break
-    fi    
-done 
+my_print "- Чтение конфигурации"
+source read_config
 
-}
-$TOOLS/bootclt $>$LOGNEO
+
+bootclt $>$LOGNEO
 if [[ "$?" == "64" ]] ; then
     bootctl_state=true
 else
     bootctl_state=false
 fi
-$TOOLS/snapshotctl $>$LOGNEO
+snapshotctl $>$LOGNEO
 if [[ "$?" == "64" ]] ; then
     snapshotctl_state=true
 else
