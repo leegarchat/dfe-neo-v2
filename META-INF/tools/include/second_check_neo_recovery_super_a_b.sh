@@ -60,6 +60,9 @@ if $NEO_ALREADY_INSTALL && ! $force_start; then
     my_print "    Переустановить - громкость вверх (+)"
     my_print "    Удалить - громкость вверх (-)"
     if ! volume_selector ; then
+        my_print "**> Переустановить - громкость вверх (+)"
+    else
+        my_print "**> Удалить - громкость вверх (-)"   
         first_remove_neo_recovery_super_a_b
         exit 0
     fi
