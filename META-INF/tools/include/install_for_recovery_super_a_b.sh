@@ -3,7 +3,7 @@
 
 
 
-source update_partitions
+source first_update_partitions_super_a_b
 CSUFFIX=$(getprop ro.boot.slot_suffix)
 if [[ -z "$CSUFFIX" ]]; then
     CSUFFIX=$(grep_cmdline androidboot.slot_suffix)
