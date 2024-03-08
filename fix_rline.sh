@@ -1,0 +1,1 @@
+for line in $(find ./ -name *"\.sh" -or -name "update"* -or -name *"\.lng" -or -name "NEO.config" -or -name "module.prop" ) ; do sed -i 's/\r$//' $line && echo "Пофикшено: $line" || echo "Ошибка фикса $line" ; done 

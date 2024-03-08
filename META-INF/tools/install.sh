@@ -621,26 +621,26 @@ update_partitions(){
 =======
 >>>>>>> 485a1d7 (.)
 
-source $TMP_TOOLS/include/add_binary_to_PATH.sh
+source $TMP_TOOLS/include/first_add_binary_to_PATH.sh
 type my_print || exit 79
 
 my_print "- Определение функций"
 
-source abort_neo_function
-source volume_selector_function
+source function_abort_neo
+source function_volume_selector
 
 
 
 my_print "- Определение стандартных переменных"
-source set_default_args
-source set_languages
+source first_set_default_args
+source fisrt_set_languages
 
 
 # Версия программы
 my_print "- $NEO_VERSION"
 my_print "- Скрипт запущен из $WHERE_INSTALLING"
 my_print "- Чтение конфигурации"
-source read_config
+source first_read_config
 
 
 bootclt $>$LOGNEO
@@ -692,7 +692,7 @@ fi
 my_print "- Проверка на наличие super раздела"
 
 SUPER_BLOCK=$(find_super_partition)
-if [[ -z "$super_block" ]] ; then
+if [[ -z "$SUPER_BLOCK" ]] ; then
     my_print "- Раздел super не найден"
     SUPER_THIS=false
 else
@@ -730,11 +730,11 @@ my_print "- Проверка возможности интеграции NEOv2 �
 if $SUPER_THIS && ! $AONLY ; then
     case "$WHERE_INSTALLING" in 
         kernelsu|magiskapp)
-            source run_install_SSAB
+            source install_for_system_super_a_b
         ;;
         recovery)
             my_print "- Запуск подпроцесса для A/B устройств с super"
-            source run_install_RSAB
+            source install_for_recovery_super_a_b
         ;;
         *)
             abort_neo -e 10.1 -m "Скрипт запущен неправильно, как ты сюда попал?"
@@ -743,10 +743,10 @@ if $SUPER_THIS && ! $AONLY ; then
 elif $SUPER_THIS && $AONLY ; then
     case "$WHERE_INSTALLING" in 
         kernelsu|magiskapp)
-            source run_install_SSA
+            source install_for_system_super_a_only
         ;;
         recovery)
-            source run_install_RSA
+            source install_for_recovery_super_a_only
         ;;
         *)
             abort_neo -e 10.1 -m "Скрипт запущен неправильно, как ты сюда попал?"
@@ -755,10 +755,10 @@ elif $SUPER_THIS && $AONLY ; then
 elif ! $SUPER_THIS && ! $AONLY ; then
     case "$WHERE_INSTALLING" in 
         kernelsu|magiskapp)
-            source run_install_SAB
+            source install_for_system_a_b
         ;;
         recovery)
-            source run_install_RAB
+            source install_for_recovery_a_b
         ;;
         *)
             abort_neo -e 10.1 -m "Скрипт запущен неправильно, как ты сюда попал?"
@@ -793,7 +793,7 @@ fi
 
     SWITCH_SLOT_AFTER_OTA=false
     if ! $SYS_STATUS && [[ -n "$CSLOT" ]] ; then
-        
+        echo 1
     elif $SYS_STATUS && $install_after_ota ; then
         if $TOOLS/snapshotctl map &>$LOGNEO ; then
             my_print "- Mapping partitions after ota"

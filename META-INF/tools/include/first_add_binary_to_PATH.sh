@@ -4,7 +4,7 @@
 # $TOOLS - Константа, объявлена в update-binary. Путь к каталогу с бинарниками $TMP_TOOLS/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
 # $TMP_TOOLS - Константа, объявлена в update-binary. Путь к каталогу с подкаталогами бинарников $TMPN/unzip/META-INF/tools. В нем каталоги binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
 
-binary_pull_busubox="mv cp dirname basename grep [ [[ mountpoint sed echo mkdir ls ln readlink realpath cat awk wc"
+binary_pull_busubox="mv cp dirname basename grep [ [[ sleep mountpoint sed echo mkdir ls ln readlink realpath cat awk wc"
 binary_pull_busubox+=""
 binary_pull_toybox="file"
 # Добавление из busybox
