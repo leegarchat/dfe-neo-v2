@@ -638,7 +638,7 @@ source set_languages
 
 # Версия программы
 my_print "- $NEO_VERSION"
-
+my_print "- Скрипт запущен из $WHERE_INSTALLING"
 my_print "- Чтение конфигурации"
 source read_config
 
@@ -715,7 +715,7 @@ fi
 my_print "- Поиск vendor_boot раздела"
 if find_block_neo -c -b "vendor_boot" "vendor_boot_a" "vendor_boot_b" ; then
     my_print "- Vendor_boot раздел найден. Будет легко"
-    BOOT_PATCH+="vendor_boot"
+    BOOT_PATCH+=" vendor_boot"
     VBOOT_THIS=true
 else
     if ! $RECOVERY_THIS ; then 
@@ -733,6 +733,7 @@ if $SUPER_THIS && ! $AONLY ; then
             source run_install_SSAB
         ;;
         recovery)
+            my_print "- Запуск подпроцесса для A/B устройств с super"
             source run_install_RSAB
         ;;
         *)
@@ -792,14 +793,7 @@ fi
 
     SWITCH_SLOT_AFTER_OTA=false
     if ! $SYS_STATUS && [[ -n "$CSLOT" ]] ; then
-        update_partitions
-        CSLOT=$(getprop ro.boot.slot_suffix)
-        if [[ -z "$CSLOT" ]]; then
-            CSLOT=$(grep_cmdline androidboot.slot_suffix)
-            if [[ -z "$CSLOT" ]]; then
-                CSLOT=$(grep_cmdline androidboot.slot)
-            fi
-        fi
+        
     elif $SYS_STATUS && $install_after_ota ; then
         if $TOOLS/snapshotctl map &>$LOGNEO ; then
             my_print "- Mapping partitions after ota"
@@ -846,33 +840,7 @@ fi
     export FLASH_IN_BOOT=true
 
 
-    echo 12 &>$LOGNEO
-    DETECT_NEO_IN_BOOT=false
-    DETECT_NEO_IN_SUPER=false
-    DETECT_NEO_IN_VENDOR_BOOT=false
-    DFE_NEO_DETECT_IN_FSTAB=false
-    echo 16 &>$LOGNEO
-    if $(find_block_neo -c -b vendor_boot${RCSLOT}) ; then
-        if cat $(find_block_neo -b vendor_boot${RCSLOT}) | grep mount | grep /etc/init/hw/ &>$LOGNEO ; then
-            DETECT_NEO_IN_VENDOR_BOOT=true
-        fi
-    fi
-    echo 178 &>$LOGNEO
-    if $(find_block_neo -c -b boot${RCSLOT}) ; then
-        if cat $(find_block_neo -b boot${RCSLOT}) | grep mount | grep /etc/init/hw/ &>$LOGNEO ; then
-            DETECT_NEO_IN_BOOT=true
-        fi
-    fi
-    echo 181 &>$LOGNEO
-    if [[ -n "$CSLOTSLOT" ]] ; then 
-        if $TOOLS/lptools_new --slot $CSLOTSLOT --suffix $CSLOT --super $super_block --get-info | grep "neo_inject" &>$LOGNEO ; then
-            DETECT_NEO_IN_SUPER=true
-        fi
-    else
-        if $TOOLS/lptools_new --super $super_block --get-info | grep "neo_inject" &>$LOGNEO ; then
-            DETECT_NEO_IN_SUPER=true
-        fi
-    fi
+    
     echo 12123 &>$LOGNEO
 
     for boot_sda in vendor_boot boot; do

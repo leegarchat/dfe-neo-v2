@@ -6,40 +6,35 @@
 # $TOOLS - Константа, объявлена в update-binary. Путь к каталогу с бинарниками $TMP_TOOLS/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
 
 
-update_partitions(){
-    my_print "- $word49"
-    BOOTCTL_SUPPORT=false
+    # local SLOTCURRENT SUFFIXINCURRENT
+
+    my_print "- Начало переразметки разделов и слота"
+    my_print "- Для корректной установки и определния куда"
+
     if $bootctl_state ; then
-        SLOTCURRENT=$($TOOLS/bootctl get-current-slot)
+        SLOTCURRENT=$(bootctl get-current-slot)
     else
         SLOTCURRENT=""
     fi
 
     if [[ -z "$SLOTCURRENT" ]] ; then
-        case $CSLOT in 
+        case $CSUFFIX in 
             _a)
                 SLOTCURRENT=0
+                SUFFIXCURRENT="_a"
+                SUFFIXINCURRENT="_b"
             ;;
             _b)
                 SLOTCURRENT=1
+                SUFFIXCURRENT="_b"
+                SUFFIXINCURRENT="_a"
+            ;;
+            *)
+                exit 15
             ;;
         esac 
     fi
 
-    if [[ -n "$SLOTCURRENT" ]] ; then 
-        case "$SLOTCURRENT" in
-            0) 
-            SUFFIXCURRENT="_a"
-            SUFFIXINCURRENT="_b"
-            ;;
-            1) 
-            SUFFIXCURRENT="_b"
-            SUFFIXINCURRENT="_a"
-            ;;
-        esac
-    else
-    exit 14
-    fi
 
     for part in /dev/block/mapper/* ; do
     line_to_remove=""
@@ -50,10 +45,10 @@ update_partitions(){
         umount -fl $part &>$LOGNEO
         umount -fl $part &>$LOGNEO
 
-        $TOOLS/lptools_new --super $super_block --slot 1 --suffix _a --unmap $(basename ${part}) &>$LOGNEO
-        $TOOLS/lptools_new --super $super_block --slot 1 --suffix _b --unmap $(basename ${part}) &>$LOGNEO
-        $TOOLS/lptools_new --super $super_block --slot 0 --suffix _a --unmap $(basename ${part}) &>$LOGNEO
-        $TOOLS/lptools_new --super $super_block --slot 0 --suffix _b --unmap $(basename ${part}) &>$LOGNEO
+        lptools_new --super $super_block --slot 1 --suffix _a --unmap $(basename ${part}) &>$LOGNEO
+        lptools_new --super $super_block --slot 1 --suffix _b --unmap $(basename ${part}) &>$LOGNEO
+        lptools_new --super $super_block --slot 0 --suffix _a --unmap $(basename ${part}) &>$LOGNEO
+        lptools_new --super $super_block --slot 0 --suffix _b --unmap $(basename ${part}) &>$LOGNEO
         if [ "$name_part" == "system" ] ; then 
         name_part=system_root
         fi
@@ -68,17 +63,17 @@ update_partitions(){
 
     for CHECK_SLOT in 0 1 ; do 
         for CHECK_SUFFIX in _a _b ; do
-            if $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map system$CHECK_SUFFIX &> $TMPN/outSlog ; then
-                if $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map vendor$CHECK_SUFFIX &> $TMPN/outVlog ; then
+            if lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map system$CHECK_SUFFIX &> $TMPN/outSlog ; then
+                if lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --map vendor$CHECK_SUFFIX &> $TMPN/outVlog ; then
                     if ! (grep "Creating dm partition for" $TMPN/outSlog &>$LOGNEO) && ! (grep "Creating dm partition for" $TMPN/outVlog &>$LOGNEO)  ; then
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
+                        lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
+                        lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
                         continue
                     fi
                     if (grep "Could not map partition:" $TMPN/outSlog &>$LOGNEO) && (grep "Could not map partition:" $TMPN/outVlog &>$LOGNEO) ; then
                         continue
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
+                        lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
+                        lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
                     fi
                     
                     DM_PATHS=$(grep "Creating dm partition for" $TMPN/outSlog | awk '{print $9}')
@@ -89,45 +84,45 @@ update_partitions(){
                         if ! mount -r $DM_PATHS $TMPN/mount_test &>$LOGNEO ; then
                             if ! mount -r $DM_PATHS $TMPN/mount_test &>$LOGNEO ; then
                                 if ! mount -r $DM_PATHS $TMPN/mount_test &>$LOGNEO ; then 
-                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
+                                    lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
+                                    lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
                                     continue
                                 fi 
                             fi 
                         fi
                     else 
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
+                        lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
+                        lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
                         continue 
                     fi 
                     umount -fl $DM_PATHS &>$LOGNEO
                     umount -fl $DM_PATHS &>$LOGNEO
-                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
+                    lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
                     if [[ -n "$DM_PATHV" ]] ; then 
                         [ -d $TMPN/mount_test ] || mkdir $TMPN/mount_test
                         if ! mount -r $DM_PATHV $TMPN/mount_test &>$LOGNEO ; then
                             if ! mount -r $DM_PATHV $TMPN/mount_test &>$LOGNEO ; then
                                 if ! mount -r $DM_PATHV $TMPN/mount_test &>$LOGNEO ; then 
-                                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
+                                    lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
                                     continue
                                 fi 
                             fi 
                         fi
                     else 
-                        $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
+                        lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
                         continue 
                     fi 
                     umount -fl $DM_PATHV &>$LOGNEO
                     umount -fl $DM_PATHV &>$LOGNEO
-                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
+                    lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
                     
                     
                     ACTIVE_SLOT_SUFFIX+="$CHECK_SLOT:$CHECK_SUFFIX "
                 else 
-                    $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
+                    lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap vendor$CHECK_SUFFIX &>$LOGNEO
                 fi
             else
-                $TOOLS/lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
+                lptools_new --super $super_block --slot $CHECK_SLOT --suffix $CHECK_SUFFIX --unmap system$CHECK_SUFFIX &>$LOGNEO
             fi
         done 
     done
@@ -179,14 +174,14 @@ update_partitions(){
     esac 
     for suffix_for in _a _b ; do 
         for file_for_mapper in /dev/block/mapper/*$suffix_for ; do
-                $TOOLS/lptools_new --super $super_block --slot 0 --suffix $suffix_for --unmap $file_for_mapper &>$LOGNEO
-                $TOOLS/lptools_new --super $super_block --slot 1 --suffix $suffix_for --unmap $file_for_mapper &>$LOGNEO
+                lptools_new --super $super_block --slot 0 --suffix $suffix_for --unmap $file_for_mapper &>$LOGNEO
+                lptools_new --super $super_block --slot 1 --suffix $suffix_for --unmap $file_for_mapper &>$LOGNEO
         done
     done
-    for partition in $($TOOLS/lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | awk '{print $1}') ; do
+    for partition in $(lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | awk '{print $1}') ; do
         name_part=${partition/"NamePartInGroup->"/}
         echo "$name_part" &>$LOGNEO
-        if $TOOLS/lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --map $name_part > $TMPN/outlog ; then
+        if lptools_new --super $super_block --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --map $name_part > $TMPN/outlog ; then
             cat $TMPN/outlog
             DM_PATH=$(grep "Creating dm partition for" $TMPN/outlog | awk '{print $9}')
             name_part_without_suffix=$(basename ${name_part%"$FINAL_ACTIVE_SUFFIX"*})
@@ -202,7 +197,7 @@ update_partitions(){
    
     echo 4 &>$LOGNEO
     if ! [[ "$SLOTCURRENT" == "$FINAL_ACTIVE_SLOT" ]] ; then
-        $TOOLS/magisk resetprop ro.boot.slot_suffix $FINAL_ACTIVE_SUFFIX
+        magisk resetprop ro.boot.slot_suffix $FINAL_ACTIVE_SUFFIX
         grep androidboot.slot_suffix /proc/bootconfig && {
             echo 5 &>$LOGNEO
             edit_text="$(cat /proc/bootconfig | sed 's/androidboot.slot_suffix = "'$SUFFIXCURRENT'"/androidboot.slot_suffix = "'$FINAL_ACTIVE_SUFFIX'"/')"
@@ -242,11 +237,10 @@ update_partitions(){
 
         done
         if $bootctl_state ; then
-            $TOOLS/bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
+            bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
         fi
     
     fi
 
     return 0 
 
-}
