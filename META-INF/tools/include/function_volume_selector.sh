@@ -30,7 +30,7 @@ volume_selector(){
         done
         if $volume_selector_error; then
             rm -rf $volume_selector_events_file
-            abort_neo -e 2.1 -m "$word1"
+            abort_neo -e 2.1 -m "Нажатие не распознано"
         else
             volume_selector_error=true
         fi
