@@ -32,4 +32,6 @@ esac
 my_print "- Загрузочный слот перераспределен"
 my_print "- Загрузочный слот: $CSUFFIX"
 
-source check_installing_neo
+source second_check_neo_recovery_super_a_b
+source second_select_config_ask
+
