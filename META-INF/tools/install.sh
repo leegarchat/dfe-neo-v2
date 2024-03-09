@@ -127,7 +127,7 @@ get_current_suffix(){ # <--- Определение функции [--current] [
     export OUT_MESSAGE_SUFFIX="A-ONLY"
     case "$1" in
         --current) ; A_CASE="_a" ; B_CASE="_b" ;;
-        --uncurrent) ; A_CASE="_b" ; B_CASE="_a";;
+        --uncurrent) ; A_CASE="_b" ; B_CASE="_a" ;;
     esac
     CSUFFIX_tmp=$(getprop ro.boot.slot_suffix)
     if [[ -z "$CSUFFIX_tmp" ]]; then
@@ -145,6 +145,59 @@ get_current_suffix(){ # <--- Определение функции [--current] [
     esac
 
 }; export -f get_current_suffix
+
+find_block_neo(){ # <--- Определение функции -с проверка поиска блока вовзращет истину или лож, -b задает что искать 
+    found_blocks=()
+    block_names=()
+    check_status_o=false
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -c)
+                check_status_o=true
+                shift 1
+            ;;
+            -b)
+                shift 1
+                if [[ $# -gt 0 && ${1:0:1} != "-" ]]; then
+                    while [[ $# -gt 0 && ${1:0:1} != "-" ]]; do
+                        block_names+=("$1")
+                        shift 1
+                    done
+                fi
+            ;;
+            *)
+                echo "Unknown parameter: $1" &>$LOGNEO
+                exit 1
+            ;;
+        esac
+    done
+
+    for block in "${block_names[@]}"; do
+        # my_print "- Searching for block $block"
+        if [ -h /dev/block/by-name/$block ]; then
+            if ! [ -h "$(readlink /dev/block/by-name/$block)" ] && [ -b "$(readlink /dev/block/by-name/$block)" ]; then
+                found_blocks+="$(readlink /dev/block/by-name/$block) "
+            fi
+            elif [ -b /dev/block/mapper/$block ]; then
+            if ! [ -h "$(readlink /dev/block/mapper/$block)" ] && [ -b "$(readlink /dev/block/mapper/$block)" ]; then
+                found_blocks+="$(readlink /dev/block/mapper/$block) "
+            fi
+            elif [ -h /dev/block/bootdevice/by-name/$block ]; then
+            if ! [ -h "$(readlink /dev/block/bootdevice/by-name/$block)" ] && [ -b "$(readlink /dev/block/bootdevice/by-name/$block)" ]; then
+                found_blocks+="$(readlink /dev/block/bootdevice/by-name/$block) "
+            fi
+        fi
+    done
+    if [[ -z "$found_blocks" ]] ; then
+        return 1
+    else
+        if $check_status_o ; then
+            return 0
+        else
+            echo "${found_blocks}"
+        fi
+    fi
+}; export -f find_block_neo
 
 volume_selector(){ # <--- Определение функции  [Аругменты $1 - Выбор (+)] [Аругменты $2 - Выбор (-)]
     my_print "    $1 [Громкость вверх (+)]"
@@ -175,6 +228,137 @@ volume_selector(){ # <--- Определение функции  [Аругмен
     done
 }; export -f volume_selector
 
+unmap_all_partitions(){ # <--- Определение функции [Аругментов нет]
+    for partitions in /dev/block/mapper/* ; do
+        if [[ -h "$partitions" ]] && [[ -b "$(readlink -f "$partitions")" ]] ; then 
+            partitions_name="$(basename "$partitions")"
+            umount -fl "$partitions" &>$LOGNEO && umount -fl "$partitions" &>$LOGNEO && umount -fl "$partitions" &>$LOGNEO && umount -fl "$partitions" &>$LOGNEO
+            if [[ -n "$CURRENT_SUFFIX" ]] ; then
+                lptools_new --super "$SUPER_BLOCK" --slot "$CURRENT_SLOT" --suffix "$CURRENT_SUFFIX" --unmap "$partitions_name" &>$NEOLO
+                lptools_new --super "$SUPER_BLOCK" --slot "$UNCURRENT_SLOT" --suffix "$UNCURRENT_SUFFIX" --unmap "$partitions_name" &>$NEOLO
+            else
+                lptools_new --super "$SUPER_BLOCK" --slot "$CURRENT_SLOT" --unmap "$partitions_name" &>$NEOLO
+            fi
+        fi
+    done
+}; export -f unmap_all_partitions
+
+update_partitions(){ # <--- Определение функции [Аругментов нет]
+
+    my_print "- Обновление разделов"
+    unmap_all_partitions
+
+    good_slot_suffix=""
+    if [[ -n "$CURRENT_SUFFIX" ]] ; then
+        for check_suffix in _a _b ; do
+            for check_slot in 0 1 ; do
+                system_check_state=false
+                vendor_check_state=false
+                for partitions in vendor system ; do
+                    continue_fail=false
+                    if lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --map "system$check_suffix" &>$NEOLOG ; then
+                        mkdir -pv "$TMPN/check_partitions/system$check_suffix" &>$NEOLO
+                        if ! mount -r "/dev/block/mapper/system$check_suffix" "$TMPN/check_partitions/system$check_suffix" ; then
+                            if ! mount -r "/dev/block/mapper/system$check_suffix" "$TMPN/check_partitions/system$check_suffix" ; then
+                                if ! mount -r "/dev/block/mapper/system$check_suffix" "$TMPN/check_partitions/system$check_suffix" ; then
+                                    continue_fail=true
+                                fi
+                            fi
+                        fi
+                        if ! $continue_fail && mountpoint "$TMPN/check_partitions/system$check_suffix" &>$LOGNEO ; then export ${partitions}_check_state=true ; fi
+                        umount -fl "$TMPN/check_partitions/system$check_suffix" &>$NEOLOG
+                        lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --unmap "system$check_suffix" &>$NEOLOG
+                        rm -rf "$TMPN/check_partitions/system$check_suffix"
+                    fi
+                done
+                if $system_check_state && $vendor_check_state ; then
+                    good_slot_suffix+="${check_suffix}${check_slot}"
+                fi
+            done
+        done 
+        case "$good_slot_suffix" in
+            "_a0_b1"|"_a0") 
+                FINAL_ACTIVE_SLOT=0
+                FINAL_ACTIVE_SUFFIX=_a
+            ;;
+            "_b0_b1"|"_b1") 
+                FINAL_ACTIVE_SLOT=1
+                FINAL_ACTIVE_SUFFIX=_b
+            ;;
+            "_a0_b1")
+                if grep -q "source_slot: A" /tmp/recovery.log && grep -q "target_slot: B" /tmp/recovery.log ; then
+                    FINAL_ACTIVE_SLOT=1
+                    FINAL_ACTIVE_SUFFIX=_b
+                elif grep -q "target_slot: B" /tmp/recovery.log && grep -q "source_slot: A" /tmp/recovery.log ; then
+                    FINAL_ACTIVE_SLOT=0
+                    FINAL_ACTIVE_SUFFIX=_a
+                else
+                    FINAL_ACTIVE_SLOT=$CURRENT_SLOT
+                    FINAL_ACTIVE_SUFFIX=$CURRENT_SUFFIX
+                fi
+            ;;
+            *)
+                my_print " !!!!!!!!! " 
+                if ! $force_start ; then 
+                    my_print "- Скрипт не смог определить загрузочный слот. Выберите загрузочный слот самостоятельно"
+                    if volume_selector "Выбрать слот _a" "Выбрать слот _b" ; then 
+                        FINAL_ACTIVE_SLOT=0
+                        FINAL_ACTIVE_SUFFIX=_a
+                    else
+                        FINAL_ACTIVE_SLOT=1
+                        FINAL_ACTIVE_SUFFIX=_b
+                    fi
+                else 
+                    abort_neo -e 119.1 -m "Скрипт не смог определить загрузочный слот. В режиме force_start=true установка не доступтна"
+                fi
+            ;;
+        esac
+        unmap_all_partitions
+
+        for partition in $(lptools_new --super $SUPER_BLOCK --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | awk '{print $1}') ; do
+            partition_name=${partition/"NamePartInGroup->"/}
+            if lptools_new --super "$SUPER_BLOCK" --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --map $partition_name &>$NEOLOG ; then
+                my_print "- Разметка раздела: $partition_name"
+                sleep 0.5
+            else 
+                my_print "- Не удалось разметить: $partition_name"
+            fi
+        done
+
+        if ! [[ "$CURRENT_SUFFIX" == "$FINAL_ACTIVE_SUFFIX" ]] ; then
+            magisk resetprop ro.boot.slot_suffix $FINAL_ACTIVE_SUFFIX
+            if grep androidboot.slot_suffix /proc/bootconfig ; then
+                edit_text="$(cat /proc/bootconfig | sed 's/androidboot.slot_suffix = "'$CURRENT_SUFFIX'"/androidboot.slot_suffix = "'$FINAL_ACTIVE_SUFFIX'"/')"
+                echo -e "$edit_text" > $TMPN/bootconfig_new 
+                mount $TMPN/bootconfig_new /proc/bootconfig &>$LOGNEO
+            fi
+            if grep "androidboot.slot_suffix=$CURRENT_SUFFIX" /proc/cmdline || grep "androidboot.slot=$CURRENT_SUFFIX" /proc/cmdline ; then
+                edit_text="$(cat /proc/cmdline | sed 's/androidboot.slot_suffix='$CURRENT_SUFFIX'/androidboot.slot_suffix='$FINAL_ACTIVE_SUFFIX'/' | sed 's/androidboot.slot='$CURRENT_SUFFIX'/androidboot.slot='$FINAL_ACTIVE_SUFFIX'/')"
+                echo -e "$edit_text" > $TMPN/cmdline_new 
+                mount $TMPN/cmdline_new /proc/cmdline &>$LOGNEO
+            fi
+            if $BOOTCTL_STATE ; then
+                bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
+            fi
+        fi
+    else
+        unmap_all_partitions
+        for partition in $(lptools_new --super $SUPER_BLOCK --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | awk '{print $1}') ; do
+            partition_name=${partition/"NamePartInGroup->"/}
+            if lptools_new --super "$SUPER_BLOCK" --map $partition_name &>$NEOLOG ; then
+                my_print "- Разметка раздела: $partition_name"
+                sleep 0.5
+            else 
+                my_print "- Не удалось разметить: $partition_name"
+            fi
+        done
+    fi
+    get_current_suffix --current
+
+
+
+}; export -f update_partitions
+
 find_super_partition(){ # <--- Определение функции [Аругментов нет]
     for blocksuper in /dev/block/by-name/* /dev/block/bootdevice/by-name/* /dev/block/bootdevice/* /dev/block/* ; do
         if lptools_new --super $blocksuper --get-info &>/dev/null; then
@@ -182,7 +366,226 @@ find_super_partition(){ # <--- Определение функции [Аругм
             break
         fi    
     done 
-}
+}; export -f find_super_partition
+
+select_argumetns_for_install(){ # <--- Определение функции [Аругментов нет]
+    if [[ $hide_not_encrypted == "ask" ]] ; then
+        my_print " "
+        my_print "- Установить патч, который скроет отсутствие шифрования?"
+        my_print "- **Будет работать только если установлен Magisk или KSU или Selinux в режиме Permissive"
+        my_print "    Да 'установить' - Громкость вверх (+)" -s
+        my_print "    Нет 'не устанавливать' - Громкость вниз (-)" -s
+        if volume_selector ; then
+            my_print "**> Да 'установить' - Громкость вверх (+)"
+            hide_not_encrypted=true
+        else
+            my_print "**> Нет 'не устанавливать' - Громкость вниз (-)"
+            hide_not_encrypted=false
+        fi
+    fi
+    if [[ $safety_net_fix == "ask" ]] ; then
+        my_print " "
+        my_print "- Установить встроенный safety net fix?"
+        my_print "- **Будет работать только если установлен Magisk или KSU или Selinux в режиме Permissive"
+        my_print "    Да 'установить' - Громкость вверх (+)" -s
+        my_print "    Нет 'не устанавливать' - Громкость вниз (-)" -s
+        if volume_selector ; then
+            my_print "**> Да 'установить' - Громкость вверх (+)"
+            safety_net_fix=true
+        else
+            my_print "**> Нет 'не устанавливать' - Громкость вниз (-)"
+            safety_net_fix=false
+        fi
+    fi
+    if $SYS_STATUS ; then
+        wipe_data=false
+    else
+        if [[ $wipe_data == "ask" ]] ; then
+            my_print " "
+            my_print "- Сделать wipe data? удалит все данные прошивки, внутренняя память не будет тронута"
+            my_print "    Да 'удалить' - Громкость вверх (+)" -s
+            my_print "    Нет 'не трогать!' - Громкость вниз (-)" -s
+            if volume_selector ; then
+                my_print "**> Да 'удалить' - Громкость вверх (+)"
+                wipe_data=true
+            else
+                my_print "**> Нет 'не трогать!' - Громкость вниз (-)"
+                wipe_data=false
+            fi
+        fi
+    fi
+    if [[ $remove_pin == "ask" ]] ; then
+        my_print " "
+        my_print "- Удалить данные экрана блокировки?"
+        my_print "    Да 'удалить' - Громкость вверх (+)" -s
+        my_print "    Нет 'не трогать!' - Громкость вниз (-)" -s
+        if volume_selector ; then
+            my_print "**> Да 'удалить' - Громкость вверх (+)"
+            remove_pin=true
+        else
+            my_print "**> Нет 'не трогать!' - Громкость вниз (-)"
+            remove_pin=false
+        fi
+    fi
+    if [[ $modify_early_mount == "ask" ]] ; then
+        my_print " "
+        my_print "- Подключать измененный fstab во время раннего монтирования разделов?"
+        my_print "- ** Нужно в основном если вы использовали дополнительные ключи dfe_paterns для системных разделов или использовали ключ -v для удаления оверлеев"
+        my_print "    Да 'Подключить' - Громкость вверх (+)" -s
+        my_print "    Нет 'Нет нужды' - Громкость вниз (-)" -s
+        if volume_selector ; then
+            my_print "**> Да 'Подключить' - Громкость вверх (+)"
+            modify_early_mount=true
+        else
+            my_print "**> Нет 'Нет нужды' - Громкость вниз (-)"
+            modify_early_mount=false
+        fi
+    fi
+    if [[ $disable_verity_and_verification == "ask" ]] ; then
+        my_print " "
+        my_print "- Удалить проверку целостности системы?"
+        my_print "- ** Эта опция патчит vbmeta и system_vbmeta тем самым отключает проверку целостности системы, включите эту опцию если получили bootloop или если знаете зачем она нужна, в ином случае просто не трогайте"
+        my_print "    Да 'отключить' - Громкость вверх (+)" -s
+        my_print "    Нет 'не трогать' - Громкость вниз (-)" -s
+        if volume_selector ; then
+            my_print "**> Да 'отключить' - Громкость вверх (+)"
+            disable_verity_and_verification=true
+        else
+            my_print "**> Нет 'не трогать' - Громкость вниз (-)"
+            disable_verity_and_verification=false
+        fi
+    fi
+
+    if [[ $zygisk_turn_on == "ask" ]] ; then
+        my_print " "
+        my_print "- Принудительно включить zygisk во время включения?"
+        my_print "- ** Опция будет работать только если включен maghisk"
+        my_print "    Да 'включить' - Громкость вверх (+)" -s
+        my_print "    Нет 'не надо' - Громкость вниз (-)" -s
+        if volume_selector ; then
+            my_print "**> Да 'включить' - Громкость вверх (+)"
+            zygisk_turn_on=true
+            my_print " "
+            my_print "- Какой режим принудительного запуска использовать?"
+            my_print "- ** Постоянный, это значит что будет включаться каждый раз при запуске системы"
+            my_print "- ** Одноразовый, это значит что запуститься будет включен только при первом запуске системы, в дальнейшом будет игнорироваться принудительный запуск"
+            my_print "    'Постоянно' - Громкость вверх (+)" -s
+            my_print "    'Одноразово' - Громкость вниз (-)" -s
+            if volume_selector ; then
+                my_print "**> 'Постоянно' - Громкость вверх (+)"
+                zygisk_turn_on_parm=always_on_boot
+            else    
+                my_print "**> 'Одноразово' - Громкость вниз (-)"
+                zygisk_turn_on_parm=first_time_boot
+            fi
+        else
+            my_print "**> Нет 'не надо' - Громкость вниз (-)"
+            zygisk_turn_on=false
+        fi
+    elif [[ "$zygisk_turn_on" == "first_time_boot" ]] || [[ "$zygisk_turn_on" == "always_on_boot" ]] ; then
+        zygisk_turn_on_parm=$zygisk_turn_on
+        zygisk_turn_on=true
+    fi
+    if [[ $add_custom_deny_list == "ask" ]] ; then
+        my_print " "
+        my_print "- Принудительно делать запись в denylist во время включения?"
+        my_print "- ** Опция будет работать только если включен zygisk"
+        my_print "    Да 'включить' - Громкость вверх (+)" -s
+        my_print "    Нет 'не надо' - Громкость вниз (-)" -s
+        if volume_selector ; then
+            my_print "**> Да 'включить' - Громкость вверх (+)"
+            add_custom_deny_list=true
+            my_print " "
+            my_print "- Какой режим принудительного запуска использовать?"
+            my_print "- ** Постоянный, это значит что будет включаться каждый раз при запуске системы"
+            my_print "- ** Одноразовый, это значит что запуститься будет включен только при первом запуске системы, в дальнейшом будет игнорироваться принудительный запуск"
+            my_print "    'Постоянно' - Громкость вверх (+)" -s
+            my_print "    'Одноразово' - Громкость вниз (-)" -s
+            if volume_selector ; then
+                my_print "**> 'Постоянно' - Громкость вверх (+)"
+                add_custom_deny_list_parm=first_time_boot
+            else
+                my_print "**> 'Одноразово' - Громкость вниз (-)"
+                add_custom_deny_list_parm=always_on_boot
+            fi
+        else
+            my_print "**> Нет 'не надо' - Громкость вниз (-)"
+            add_custom_deny_list=false
+        fi
+    elif [[ "$add_custom_deny_list" == "first_time_boot" ]] || [[ "$add_custom_deny_list" == "always_on_boot" ]] ; then
+        add_custom_deny_list_parm=$add_custom_deny_list
+        add_custom_deny_list=true
+    fi
+}; export -f select_argumetns_for_install
+
+mount_vendor(){ # <--- Определение функции [Аругментов нет]
+
+    my_print "- Монтирования vendor"
+    VENDOR_BLOCK=""
+    if [[ "$SNAPSHOT_STATUS" == "unverified" ]] && $SUPER_DEVICE ; then
+        if snapshotctl map &>$NEOLOG ; then
+            if [[ -h "/dev/block/mapper/vendor$CURRENT_SUFFIX" ]] ; then
+                VENDOR_BLOCK="/dev/block/mapper/vendor$CURRENT_SUFFIX"
+                my_print "- dm блок vendor: $(basename $(readlink $VENDOR_BLOCK))"
+            else
+                abort_neo -e 124.2 -m "С разметкой что то пошло не так, vendor$CURRENT_SUFFIX не найден"
+            fi
+        else
+            abort_neo -e 124.1 -m "Не удалось разметить разделы после OTA"
+        fi
+    elif ! $SUPER_DEVICE; then
+        VENDOR_BLOCK="$(find_block_neo -b "vendor$CURRENT_SUFFIX")"
+        my_print "- Vendor расположен в отдельном блоке "
+        my_print "- Блок vendor: $(basename $(readlink $VENDOR_BLOCK))"
+    elif $SUPER_DEVICE ; then
+        if [[ -h "/dev/block/mapper/vendor$CURRENT_SUFFIX" ]] ; then
+            VENDOR_BLOCK="/dev/block/mapper/vendor$CURRENT_SUFFIX"
+            my_print "- dm блок vendor: $(basename $(readlink $VENDOR_BLOCK))"
+        else
+            abort_neo -e 124.5 -m "С разметкой что то пошло не так, vendor$CURRENT_SUFFIX не найден"
+        fi
+    fi
+    
+    [[ -z "${VENDOR_BLOCK}" ]] && abort_neo -e 25.1 -m "Vendor не найден" 
+
+    if ! $SYS_STATUS ; then
+        my_print "- Размонтирования vendor"
+        umount -fl "${VENDOR_BLOCK}" &>$LOGNEO
+        umount -fl "${VENDOR_BLOCK}" &>$LOGNEO
+        umount -fl "${VENDOR_BLOCK}" &>$LOGNEO
+        umount -fl "$(readlink "$VENDOR_BLOCK")" &>$LOGNEO
+        umount -fl "$(readlink "$VENDOR_BLOCK")" &>$LOGNEO
+        umount -fl "$(readlink "$VENDOR_BLOCK")" &>$LOGNEO
+    fi 
+
+    name_vendor_block="vendor${CSLOT}"
+    full_path_to_vendor_folder=$TMPN/mapper/$name_vendor_block
+
+    mkdir -pv $full_path_to_vendor_folder
+    my_print "- Монтирование vendor в временную папку"
+    if ! mount -o,ro $VENDOR_BLOCK $full_path_to_vendor_folder &>$LOGNEO ; then
+        mount -o,ro $VENDOR_BLOCK $full_path_to_vendor_folder &>$LOGNEO
+    fi
+    if ! mountpoint -q $full_path_to_vendor_folder ; then
+        if $SYS_STATUS ; then
+            if [[ "$SNAPSHOT_STATUS" == "unverified" ]]; then 
+                abort_neo -e 25.4 -m "Не получилось смонтировать vendor, вариантов установки после ота больше нет" 
+            else
+                full_path_to_vendor_folder=/vendor
+            fi
+        else
+            abort_neo -e 25.2 -m "Не получилось смонтировать vendor $name_vendor_block" 
+        fi
+    fi
+
+
+}; export -f mount_vendor
+
+move_files_from_vendor_hw(){ # <--- Определение функции [Аругментов нет]
+
+    
+
+}; export -f move_files_from_vendor_hw
 
 echo "- Определение языка" &>$LOGNEO && { # <--- обычный код
     if echo "$(basename "$ZIPARG3")" | busybox grep -qi "extconfig"; then
@@ -454,5 +857,10 @@ echo "- Проверка запущенной системы и OTA статус
     fi
 }
 
+if ! $SYS_STATUS && $A_ONLY_DEVICE && $SUPER_DEVICE ; then
+    update_partitions
+    select_argumetns_for_install
+    mount_vendor
+    move_files_from_vendor_hw
 
-    
+fi
