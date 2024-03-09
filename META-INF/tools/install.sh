@@ -991,13 +991,9 @@ select_argumetns_for_install(){ # <--- Определение функции [А
         my_print " "
         my_print "- Установить патч, который скроет отсутствие шифрования?"
         my_print "- **Будет работать только если установлен Magisk или KSU или Selinux в режиме Permissive"
-        my_print "    Да 'установить' - Громкость вверх (+)" -s
-        my_print "    Нет 'не устанавливать' - Громкость вниз (-)" -s
-        if volume_selector ; then
-            my_print "**> Да 'установить' - Громкость вверх (+)"
+        if volume_selector "Да 'установить'" "Нет 'не устанавливать'" ; then
             hide_not_encrypted=true
         else
-            my_print "**> Нет 'не устанавливать' - Громкость вниз (-)"
             hide_not_encrypted=false
         fi
     fi
@@ -1005,13 +1001,9 @@ select_argumetns_for_install(){ # <--- Определение функции [А
         my_print " "
         my_print "- Установить встроенный safety net fix?"
         my_print "- **Будет работать только если установлен Magisk или KSU или Selinux в режиме Permissive"
-        my_print "    Да 'установить' - Громкость вверх (+)" -s
-        my_print "    Нет 'не устанавливать' - Громкость вниз (-)" -s
-        if volume_selector ; then
-            my_print "**> Да 'установить' - Громкость вверх (+)"
+        if volume_selector "Да 'установить'" "Нет 'не устанавливать'" ; then
             safety_net_fix=true
         else
-            my_print "**> Нет 'не устанавливать' - Громкость вниз (-)"
             safety_net_fix=false
         fi
     fi
@@ -1021,13 +1013,11 @@ select_argumetns_for_install(){ # <--- Определение функции [А
         if [[ $wipe_data == "ask" ]] ; then
             my_print " "
             my_print "- Сделать wipe data? удалит все данные прошивки, внутренняя память не будет тронута"
-            my_print "    Да 'удалить' - Громкость вверх (+)" -s
-            my_print "    Нет 'не трогать!' - Громкость вниз (-)" -s
-            if volume_selector ; then
-                my_print "**> Да 'удалить' - Громкость вверх (+)"
+            my_print "     - Громкость вверх (+)" -s
+            my_print "     - Громкость вниз (-)" -s
+            if volume_selector "Да 'удалить'" "Нет 'не трогать!'" ; then
                 wipe_data=true
             else
-                my_print "**> Нет 'не трогать!' - Громкость вниз (-)"
                 wipe_data=false
             fi
         fi
@@ -1035,13 +1025,9 @@ select_argumetns_for_install(){ # <--- Определение функции [А
     if [[ $remove_pin == "ask" ]] ; then
         my_print " "
         my_print "- Удалить данные экрана блокировки?"
-        my_print "    Да 'удалить' - Громкость вверх (+)" -s
-        my_print "    Нет 'не трогать!' - Громкость вниз (-)" -s
         if volume_selector ; then
-            my_print "**> Да 'удалить' - Громкость вверх (+)"
             remove_pin=true
         else
-            my_print "**> Нет 'не трогать!' - Громкость вниз (-)"
             remove_pin=false
         fi
     fi
@@ -1049,13 +1035,9 @@ select_argumetns_for_install(){ # <--- Определение функции [А
         my_print " "
         my_print "- Подключать измененный fstab во время раннего монтирования разделов?"
         my_print "- ** Нужно в основном если вы использовали дополнительные ключи dfe_paterns для системных разделов или использовали ключ -v для удаления оверлеев"
-        my_print "    Да 'Подключить' - Громкость вверх (+)" -s
-        my_print "    Нет 'Нет нужды' - Громкость вниз (-)" -s
-        if volume_selector ; then
-            my_print "**> Да 'Подключить' - Громкость вверх (+)"
+        if volume_selector "Да 'Подключить'" " Нет 'Нет нужды'" ; then
             modify_early_mount=true
         else
-            my_print "**> Нет 'Нет нужды' - Громкость вниз (-)"
             modify_early_mount=false
         fi
     fi
@@ -1063,13 +1045,9 @@ select_argumetns_for_install(){ # <--- Определение функции [А
         my_print " "
         my_print "- Удалить проверку целостности системы?"
         my_print "- ** Эта опция патчит vbmeta и system_vbmeta тем самым отключает проверку целостности системы, включите эту опцию если получили bootloop или если знаете зачем она нужна, в ином случае просто не трогайте"
-        my_print "    Да 'отключить' - Громкость вверх (+)" -s
-        my_print "    Нет 'не трогать' - Громкость вниз (-)" -s
-        if volume_selector ; then
-            my_print "**> Да 'отключить' - Громкость вверх (+)"
+        if volume_selector "Да 'отключить'" "Нет 'не трогать'" ; then
             disable_verity_and_verification=true
         else
-            my_print "**> Нет 'не трогать' - Громкость вниз (-)"
             disable_verity_and_verification=false
         fi
     fi
@@ -1078,26 +1056,18 @@ select_argumetns_for_install(){ # <--- Определение функции [А
         my_print " "
         my_print "- Принудительно включить zygisk во время включения?"
         my_print "- ** Опция будет работать только если включен maghisk"
-        my_print "    Да 'включить' - Громкость вверх (+)" -s
-        my_print "    Нет 'не надо' - Громкость вниз (-)" -s
-        if volume_selector ; then
-            my_print "**> Да 'включить' - Громкость вверх (+)"
+        if volume_selector " Да 'включить'" "Нет 'не надо'" ; then
             zygisk_turn_on=true
             my_print " "
             my_print "- Какой режим принудительного запуска использовать?"
             my_print "- ** Постоянный, это значит что будет включаться каждый раз при запуске системы"
             my_print "- ** Одноразовый, это значит что запуститься будет включен только при первом запуске системы, в дальнейшом будет игнорироваться принудительный запуск"
-            my_print "    'Постоянно' - Громкость вверх (+)" -s
-            my_print "    'Одноразово' - Громкость вниз (-)" -s
-            if volume_selector ; then
-                my_print "**> 'Постоянно' - Громкость вверх (+)"
+            if volume_selector "'Постоянно'" "'Одноразово'" ; then
                 zygisk_turn_on_parm=always_on_boot
             else    
-                my_print "**> 'Одноразово' - Громкость вниз (-)"
                 zygisk_turn_on_parm=first_time_boot
             fi
         else
-            my_print "**> Нет 'не надо' - Громкость вниз (-)"
             zygisk_turn_on=false
         fi
     elif [[ "$zygisk_turn_on" == "first_time_boot" ]] || [[ "$zygisk_turn_on" == "always_on_boot" ]] ; then
@@ -1108,26 +1078,18 @@ select_argumetns_for_install(){ # <--- Определение функции [А
         my_print " "
         my_print "- Принудительно делать запись в denylist во время включения?"
         my_print "- ** Опция будет работать только если включен zygisk"
-        my_print "    Да 'включить' - Громкость вверх (+)" -s
-        my_print "    Нет 'не надо' - Громкость вниз (-)" -s
-        if volume_selector ; then
-            my_print "**> Да 'включить' - Громкость вверх (+)"
+        if volume_selector "Да 'включить'" "Нет 'не надо'" ; then
             add_custom_deny_list=true
             my_print " "
             my_print "- Какой режим принудительного запуска использовать?"
             my_print "- ** Постоянный, это значит что будет включаться каждый раз при запуске системы"
             my_print "- ** Одноразовый, это значит что запуститься будет включен только при первом запуске системы, в дальнейшом будет игнорироваться принудительный запуск"
-            my_print "    'Постоянно' - Громкость вверх (+)" -s
-            my_print "    'Одноразово' - Громкость вниз (-)" -s
-            if volume_selector ; then
-                my_print "**> 'Постоянно' - Громкость вверх (+)"
+            if volume_selector "'Постоянно'" "'Одноразово'" ; then
                 add_custom_deny_list_parm=first_time_boot
             else
-                my_print "**> 'Одноразово' - Громкость вниз (-)"
                 add_custom_deny_list_parm=always_on_boot
             fi
         else
-            my_print "**> Нет 'не надо' - Громкость вниз (-)"
             add_custom_deny_list=false
         fi
     elif [[ "$add_custom_deny_list" == "first_time_boot" ]] || [[ "$add_custom_deny_list" == "always_on_boot" ]] ; then
@@ -1199,7 +1161,7 @@ mount_vendor(){ # <--- Определение функции [Аругменто
 
 }; export -f mount_vendor
 
-remove_dfe_neo(){
+remove_dfe_neo(){ # <--- Определение функции [Аругментов нет]
     
     if $DETECT_NEO_IN_BOOT ; then
         cat $(find_block_neo -b boot$CSUFFIX) > $(find_block_neo -b boot$RCSUFFIX)
@@ -1212,8 +1174,8 @@ remove_dfe_neo(){
     elif $DETECT_NEO_IN_SUPER && ! $A_ONLY_DEVICE ; then
         lptools_new --slot $CSLOTSLOT --suffix $CSUFFIX --super $SUPER_BLOCK --remove "neo_inject$CSUFFIX"
     fi
-    ramdisk_compress_format=""
     for boot in $WHERE_NEO_ALREADY_INSTALL; do
+        ramdisk_compress_format=""
         block_boot=$(find_block_neo -b "$boot")
         path_check_boot="$TMPN/check_boot_neo/$boot"
         mkdir -pv $path_check_boot &>$LOGNEO
@@ -1268,7 +1230,7 @@ remove_dfe_neo(){
 
 }; export -f remove_dfe_neo
 
-check_dfe_neo_installing(){
+check_dfe_neo_installing(){ # <--- Определение функции [Аругментов нет]
     if ! $force_start; then
         export DETECT_NEO_IN_BOOT=false
         export DETECT_NEO_IN_SUPER=false
@@ -1343,13 +1305,8 @@ check_dfe_neo_installing(){
         done
         if $NEO_ALREADY_INSTALL ; then
             my_print "- Обнаружен установленный DFE-NEO, удалить или установить снова?"
-            my_print "    Переустановить - громкость вверх (+)"
-            my_print "    Удалить - громкость вверх (-)"
-            if ! volume_selector ; then
-                my_print "**> Переустановить - громкость вверх (+)"
-            else
-                my_print "**> Удалить - громкость вверх (-)"   
-                first_remove_neo_recovery_super_a_b
+            if ! volume_selector "Переустановить" "Удалить" ; then  
+                remove_dfe_neo
                 exit 0
             fi
         fi
@@ -1358,6 +1315,95 @@ check_dfe_neo_installing(){
 
 }; export -f check_neo_installing
 
+setup_peremens_for_rc(){ # <--- Определение функции [Аругментов нет]
+
+    add_init_target_rc_line_init="on init"
+    add_init_target_rc_line_early_fs="on early-fs"
+    add_init_target_rc_line_postfs="on post-fs-data"
+    add_init_target_rc_line_boot_complite="on property:sys.boot_completed=1"
+
+    if [[ -n $custom_reset_prop ]] ; then 
+
+            add_init_target_rc_line_init="on init"
+            add_init_target_rc_line_early_fs="on early-fs"
+            add_init_target_rc_line_postfs="on post-fs-data"
+            add_init_target_rc_line_boot_complite="on property:sys.boot_completed=1"
+
+
+            for PARMS_RESET in $custom_reset_prop ; do  
+                case $PARMS_RESET in 
+                    "--init")
+                        add_init=true ; add_early_fs=false ; add_post_fs_data=false ; add_boot_completed=false
+                        continue
+                    ;;
+                    "--early-fs")
+                        add_init=false ; add_early_fs=true ; add_post_fs_data=false ; add_boot_completed=false
+                        continue
+                    ;;
+                    "--post-fs-data")
+                        add_init=false ; add_early_fs=false ; add_post_fs_data=true ; add_boot_completed=false
+                        continue
+                    ;;
+                    "--boot_completed")
+                        add_init=false ; add_early_fs=false ; add_post_fs_data=false ; add_boot_completed=true
+                        continue
+                    ;;
+                esac
+                if ! $add_init && ! $add_early_fs && ! $add_post_fs_data && ! $add_boot_completed ; then
+                    exit 189
+                fi
+                if echo "$PARMS_RESET" | grep -q "=" ; then
+                    if $add_init ; then 
+                        add_init_target_rc_line_init+="\n    exec - system system -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_init+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_init+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                    elif $add_early_fs ; then 
+                        add_init_target_rc_line_early_fs+="\n    exec - system system -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_early_fs+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_early_fs+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                    elif $add_post_fs_data ; then 
+                        add_init_target_rc_line_postfs+="\n    exec - system system -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_postfs+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_postfs+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                    elif $add_boot_completed ; then 
+                        add_init_target_rc_line_boot_complite+="\n    exec - system system -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_boot_complite+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                        add_init_target_rc_line_boot_complite+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh custom_reset_prop \"${PARMS_RESET%%=*}\" \"${PARMS_RESET#*=}\""
+                    fi
+                fi
+            done
+    
+            
+    fi
+    if $safety_net_fix ; then
+        add_init_target_rc_line_init+="\n    exec - system system -- /vendor/etc/init/hw/init.sh safetynet_init"
+        add_init_target_rc_line_init+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_init"
+        add_init_target_rc_line_init+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh safetynet_init"
+
+        add_init_target_rc_line_early_fs+="\n    exec - system system -- /vendor/etc/init/hw/init.sh safetynet_fs"
+        add_init_target_rc_line_early_fs+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_fs"
+        add_init_target_rc_line_early_fs+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh safetynet_fs"
+
+        add_init_target_rc_line_postfs+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safatynet_postfs"
+
+        add_init_target_rc_line_boot_complite+="\n    exec - system system -- /vendor/etc/init/hw/init.sh safetynet_boot_complite"
+        add_init_target_rc_line_boot_complite+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh safetynet_boot_complite"
+        add_init_target_rc_line_boot_complite+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh safetynet_boot_complite"
+    fi
+    if $hide_not_encrypted ; then
+        add_init_target_rc_line_init+="\n    exec - system system -- /vendor/etc/init/hw/init.sh hide_decrypted"
+        add_init_target_rc_line_init+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh hide_decrypted"
+        add_init_target_rc_line_init+="\n    exec u:r:su:s0 root root -- /vendor/etc/init/hw/init.sh hide_decrypted"
+    fi
+    if $zygisk_turn_on ; then
+        add_init_target_rc_line_early_fs+="\n    exec_background u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh zygisk_on_$zygisk_turn_on_parm"
+    fi
+    if $add_custom_deny_list ; then
+        add_init_target_rc_line_boot_complite+="\n    exec u:r:magisk:s0 root root -- /vendor/bin/sh /vendor/etc/init/hw/init.sh add_deny_list_$add_custom_deny_list_parm"
+    fi
+
+
+}; export -f setup_peremens_for_rc
 
 move_files_from_vendor_hw(){ # <--- Определение функции [Аругментов нет]
 
@@ -1640,7 +1686,9 @@ echo "- Проверка запущенной системы и OTA статус
 
 if ! $SYS_STATUS && $A_ONLY_DEVICE && $SUPER_DEVICE ; then
     update_partitions
+    check_dfe_neo_installing # Выход если удаляют DFE
     select_argumetns_for_install
+    setup_peremens_for_rc
     mount_vendor
     move_files_from_vendor_hw
 
