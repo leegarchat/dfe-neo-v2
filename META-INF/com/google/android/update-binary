@@ -122,6 +122,9 @@ case "$(realpath "$0" )" in
   ;;
 esac
 export LOGNEO="$TMPN/outneo.log"
+export NEOLOG="$LOGNEO"
+export NEOL="$LOGNEO"
+export LOGN="$LOGNEO"
 
 
 
