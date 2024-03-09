@@ -23,6 +23,6 @@ fi
 my_print "- Конфиг обнаружен"
 my_print "- Проверка аргументов на соответсвие"
 
-source check_config "$CONFIG_FILE" || abort_neo -e "8.1" -m "Конфиг настроен не корреткно"
+source first_check_config "$CONFIG_FILE" || abort_neo -e "8.1" -m "Конфиг настроен не корреткно"
 source "$CONFIG_FILE" || abort_neo -e "8.2" -m "Не удалось считать файл конфигурации"
 my_print "- Все впорядке!"

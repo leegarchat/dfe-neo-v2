@@ -34,4 +34,4 @@ my_print "- Загрузочный слот: $CSUFFIX"
 
 source second_check_neo_recovery_super_a_b
 source second_select_config_ask
-
+source third_mount_vendor
