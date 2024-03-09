@@ -19,9 +19,11 @@ fi
 
 
 WORK_DIR=$(dirname $(realpath $FOLDER))
+
 if ! [ -d "$WORK_DIR/$FOLDER" ] ; then
     exit 21
 fi
+for line in $(find "$WORK_DIR/$FOLDER" -name *"\.sh" -or -name "update"* -or -name *"\.lng" -or -name "NEO.config" -or -name "module.prop" ) ; do sed -i 's/\r$//' $line && echo "Пофикшено: $line" || echo "Ошибка фикса $line" ; done 
 if ! [ -d "$WORK_DIR/${FOLDER}-builds" ] ; then
     mkdir "$WORK_DIR/${FOLDER}-builds"
 fi
@@ -36,11 +38,7 @@ for fulllite in Full Lite ; do
         rm -rf "$WORK_DIR/${FOLDER}-builds/${FOLDER}-$VERSION/$fulllite/"*
     fi
 done
-for file in $(find "$WORK_DIR/$FOLDER" | grep "\.sh") $(find "$WORK_DIR/$FOLDER" | grep "NEO\.config") $(find "$WORK_DIR/$FOLDER" | grep "\.lng") \
-    $(find "$WORK_DIR/$FOLDER" | grep "updater-script") $(find "$WORK_DIR/$FOLDER" | grep "update-binary") ; do
-    echo $file
-    sed -i 's/\r$//' $file
-done
+
 # sleep 10
 cd $WORK_DIR
 mkdir $WORK_DIR/tmp
@@ -102,11 +100,6 @@ for sortlanguage in $language ; do
     # echo $current_lng
     # grep "languages=" $WORK_DIR/$FOLDER/NEO.config 
     # sleep 20
-    for file in $(find "$WORK_DIR/$FOLDER" | grep "\.sh") $(find "$WORK_DIR/$FOLDER" | grep "NEO\.config") $(find "$WORK_DIR/$FOLDER" | grep "\.lng") \
-    $(find "$WORK_DIR/$FOLDER" | grep "updater-script") $(find "$WORK_DIR/$FOLDER" | grep "update-binary") ; do
-        echo $file
-        sed -i 's/\r$//' $file
-    done
     {
     $compil_all_binary && zip -9 -r ./../"${FOLDER}-builds/${FOLDER}-$VERSION/Lite/$language/Universal-$sortlanguage-$FOLDER-$VERSION-Lite.zip" ./* -x "BUILD_DFE.sh" -x ".git" -x ".git/" -x ".git/*" -x MAGISK/* -x MAGISK/
     } & {
