@@ -127,7 +127,7 @@ get_current_suffix(){ # <--- Определение функции [--current] [
     export OUT_MESSAGE_SUFFIX="A-ONLY"
     case "$1" in
         --current) ; A_CASE="_a" ; B_CASE="_b" ;;
-        --uncurrent) ; B_CASE="_a" ; B_CASE="_a";;
+        --uncurrent) ; A_CASE="_b" ; B_CASE="_a";;
     esac
     CSUFFIX_tmp=$(getprop ro.boot.slot_suffix)
     if [[ -z "$CSUFFIX_tmp" ]]; then
