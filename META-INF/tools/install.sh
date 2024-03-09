@@ -737,15 +737,15 @@ check_it(){ # <--- Определение функции [Аругментов �
     fi
 }; export -f check_it
 
-get_current_suffix(){ # <--- Определение функции [--curent] [--uncurrent] задает CURRENT_SUFFIX|UNCURRENT_SUFFIX|CURRENT_SLOT|UNCURRENT_SLOT|OUT_MESSAGE_SUFFIX
+get_current_suffix(){ # <--- Определение функции [--current] [--uncurrent] задает CURRENT_SUFFIX|UNCURRENT_SUFFIX|CURRENT_SLOT|UNCURRENT_SLOT|OUT_MESSAGE_SUFFIX
     export CURRENT_SUFFIX=""
     export UNCURRENT_SUFFIX=""
     export CURRENT_SLOT="0"
     export UNCURRENT_SLOT="1"
     export OUT_MESSAGE_SUFFIX="A-ONLY"
     case "$1" in
-        --curent) ; A_CASE="_a" ; B_CASE="_b" ;;
-        --uncurent) ; B_CASE="_a" ; B_CASE="_a";;
+        --current) ; A_CASE="_a" ; B_CASE="_b" ;;
+        --uncurrent) ; B_CASE="_a" ; B_CASE="_a";;
     esac
     CSUFFIX_tmp=$(getprop ro.boot.slot_suffix)
     if [[ -z "$CSUFFIX_tmp" ]]; then
