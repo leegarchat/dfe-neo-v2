@@ -92,8 +92,9 @@ DFE-NEO v2 - это скрипт, разработанный для отключ
 ## Использованные бинарники
 
 - **Magisk, Busybox, Magiskboot**: Взято с последней версии [Magisk](https://github.com/topjohnwu/Magisk).
-- **avbctl, bootctl, snapshotctl, toolbox, toybox, make_ext4fs**: Скомпилированы из исходного кода Android.
+- **avbctl, bootctl, snapshotctl, toolbox, toybox**: Скомпилированы из исходного кода Android.
 - **lptools_new**: Для создания бинарника использовался открытый исходный код с [GitHub](https://github.com/leegarchat/lptools_new), собственный код утилиты также включен.
+- **make_ext4fs**: [GitHub](https://github.com/sunqianGitHub/make_ext4fs/tree/master/prebuilt_binary)
 - **Bash**: Взят статичный бинарник с [Debian Packages](https://packages.debian.org/unstable/bash-static).
 - **SQLite3**: Взят из [репозитория](https://github.com/rojenzaman/sqlite3-magisk-module).
 

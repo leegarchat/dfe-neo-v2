@@ -92,7 +92,8 @@ Ini adalah deskripsi umum tentang bagaimana skrip DFE-Neo beroperasi. Ini melaku
 ## Binari yang Digunakan
 
 - **Magisk, Busybox, Magiskboot**: Diambil dari versi terbaru [Magisk](https://github.com/topjohnwu/Magisk).
-- **avbctl, bootctl, snapshotctl, toolbox, toybox, make_ext4fs**: Dikompilasi dari kode sumber Android.
+- **avbctl, bootctl, snapshotctl, toolbox, toybox**: Dikompilasi dari kode sumber Android.
 - **lptools_new**: Kode sumber terbuka dari [GitHub](https://github.com/leegarchat/lptools_new) digunakan untuk membuat binari, dengan kode utilitas sendiri termasuk.
+- **make_ext4fs**: [GitHub](https://github.com/sunqianGitHub/make_ext4fs/tree/master/prebuilt_binary)
 - **Bash**: Binari statis diambil dari [Paket Debian](https://packages.debian.org/unstable/bash-static).
 - **SQLite3**: Diambil dari [repository](https://github.com/rojenzaman/sqlite3-magisk-module).

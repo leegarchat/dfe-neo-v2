@@ -93,7 +93,8 @@ DFE-NEO v2 是一个脚本，旨在禁用 Android 设备上 /userdata 分区的�
 ## 使用的二进制文件
 
 - **Magisk、Busybox、Magiskboot**：取自最新版本的 [Magisk](https://github.com/topjohnwu/Magisk)。
-- **avbctl、bootctl、snapshotctl、toolbox、toybox、make_ext4fs**：从 Android 源代码编译而来。
+- **avbctl、bootctl、snapshotctl、toolbox、toybox**：从 Android 源代码编译而来。
+- **make_ext4fs**: [GitHub](https://github.com/sunqianGitHub/make_ext4fs/tree/master/prebuilt_binary)
 - **lptools_new**：使用 [GitHub](https://github.com/leegarchat/lptools_new) 上的开源代码创建二进制文件，还包括自己的实用程序代码。
 - **Bash**：从 [Debian Packages](https://packages.debian.org/unstable/bash-static) 获取了一个静态二进制文件。
 - **SQLite3**：从 [仓库](https://github.com/rojenzaman/sqlite3-magisk-module) 获取了它。
