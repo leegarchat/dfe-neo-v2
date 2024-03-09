@@ -119,7 +119,16 @@ check_it(){ # <--- Определение функции [Аругментов �
     fi
 }; export -f check_it
 
-get_current_suffix(){ # <--- Определение функции [Аругментов нет]
+get_current_suffix(){ # <--- Определение функции [--curent] [--uncurrent] задает CURRENT_SUFFIX|UNCURRENT_SUFFIX|CURRENT_SLOT|UNCURRENT_SLOT|OUT_MESSAGE_SUFFIX
+    export CURRENT_SUFFIX=""
+    export UNCURRENT_SUFFIX=""
+    export CURRENT_SLOT="0"
+    export UNCURRENT_SLOT="1"
+    export OUT_MESSAGE_SUFFIX="A-ONLY"
+    case "$1" in
+        --curent) ; A_CASE="_a" ; B_CASE="_b" ;;
+        --uncurent) ; B_CASE="_a" ; B_CASE="_a";;
+    esac
     CSUFFIX_tmp=$(getprop ro.boot.slot_suffix)
     if [[ -z "$CSUFFIX_tmp" ]]; then
         CSUFFIX_tmp=$(grep_cmdline androidboot.slot_suffix)
@@ -129,10 +138,12 @@ get_current_suffix(){ # <--- Определение функции [Аругме
     fi
     if [[ -n "$CSUFFIX_tmp" ]] ; then
         echo "$get_current_suffix"
-    else
-        echo ""
-        return 0
     fi
+    case "$CSUFFIX_tmp" in
+        "$A_CASE") ; CURRENT_SUFFIX="_a" ; UNCURRENT_SUFFIX="_b" ; CURRENT_SLOT=0 ; UNCURRENT_SLOT=1 ; OUT_MESSAGE_SUFFIX="$CURRENT_SUFFIX" ;;
+        "$B_CASE") ; CURRENT_SUFFIX="_b" ;  UNCURRENT_SUFFIX="_b" ; CURRENT_SLOT=1 ; UNCURRENT_SLOT=0 ; OUT_MESSAGE_SUFFIX="$CURRENT_SUFFIX" ;;
+    esac
+
 }; export -f get_current_suffix
 
 volume_selector(){ # <--- Определение функции  [Аругменты $1 - Выбор (+)] [Аругменты $2 - Выбор (-)]
@@ -345,18 +356,14 @@ echo "- Проверка доступтности bootctl & snapshotctl" &>$LOGN
 
 echo "- Чтение пропов и определние слота" &>$LOGNEO && { # <--- обычный код
     my_print "- Чтение пропов и определние переменных"
-    export CURRENT_SUFFIX="$(get_current_suffix)"
+    get_current_suffix --current
 
-    case "$CURRENT_SUFFIX" in
-        "_a") ; CURRENT_SUFFIX="_a" ; RECURCE_CURRENT_SUFFIX="_b" ; CURRENT_SLOT=0 ; RECURCE_CURRENT_SLOT=1 ;;
-        "_b") ; CURRENT_SUFFIX="_b" ;  RECURCE_CURRENT_SUFFIX="_b" ; CURRENT_SLOT=1 ; RECURCE_CURRENT_SLOT=0 ;;
-        *) ; CURRENT_SUFFIX="" ; RECURCE_CURRENT_SUFFIX="" ; CURRENT_SLOT=0 ; RECURCE_CURRENT_SLOT=1 ;;
-    esac
+    
 
     if [[ -n "$CURRENT_SUFFIX" ]] ; then
         my_print " "
         my_print "- Устройства A/B"
-        my_print "- Текущий слот: $CURRENT_SUFFIX"
+        my_print "- Текущий слот: $OUT_MESSAGE_SUFFIX"
         export A_ONLY_DEVICE=false
     else
         my_print "- Устройство A-only"
@@ -407,45 +414,45 @@ echo "- Поиск базовых блоков recovery|boot|vendor_boot" &>$LOG
     fi
 }
 
-
-OTA_COMPLITED=false
-if $SYS_STATUS ; then
-
-    if ! $SNAPSHOTCTL_STATE;
-        if ! $force_start
-            my_print "- !! Ошибка в определение статуса обновления системы, бинарник не может быть выполнен"
-            my_print "- Требуется уточнение пользователя, установка в текущую прошивку?"
-            if volume_selector "Текущая система" "Выход" ; then
-                echo "- продолжить установку" &>$NEOLOG
-            else
-                exit 82
-            fi
-        else
-            abort_neo -e "81.1" -m "Ошибка в проверке статуса обновления системы, с функцией force_start=true продолжить нельзя" 
-        fi
-    fi
-    if $SNAPSHOTCTL_STATE ; then
-        SNAPSHOT_STATUS=$($TOOLS/snapshotctl dump 2>/dev/null | grep '^Update state:' | awk '{print $3}')
-        if [[ "$SNAPSHOT_STATUS" == "none" ]] ; then
-            echo "- Установка в текущую прошивку, обновления системы не обнаружено" &>$NEOLOG
-        elif [[ "$SNAPSHOT_STATUS" == "initiated" ]] ; then
-            abort_neo -e "83.1" -m "Прошивка в состояние обновления, дождитесь установки обновления!"
-        elif [[ "$SNAPSHOT_STATUS" == "unverified" ]] ; then
-            my_print "- Обнаружено завершение установки обновления, утсановка DFE-NEO будет произведена в новую прошивку"
-            if ! $force_start ; then
-                my_print "- Но прежде чем начать мне нужно, что обновление установлено полностью, првоерить это я пока не могу"
-                if ! volume_selector "Установлена полностью" "Еще не установлена" ; then
-                    abort_neo -e "83.2" -m "Дождитесь полной установки прошивки прежде чем запускать скрипт"
+echo "- Проверка запущенной системы и OTA статуса, переопределние слота на противоположный" &>$LOGNEO && { # <--- обычный код
+    if $SYS_STATUS ; then
+        if ! $SNAPSHOTCTL_STATE;
+            if ! $force_start
+                my_print "- !! Ошибка в определение статуса обновления системы, бинарник не может быть выполнен"
+                my_print "- Требуется уточнение пользователя, установка в текущую прошивку?"
+                if volume_selector "Текущая система" "Выход" ; then
+                    echo "- продолжить установку" &>$NEOLOG
+                    get_current_suffix --current
+                else
+                    exit 82
                 fi
+            else
+                abort_neo -e "81.1" -m "Ошибка в проверке статуса обновления системы, с функцией force_start=true продолжить нельзя" 
             fi
-        else
-            abort_neo -e "83.4" -m "Неизветсный статус обновления системы"
         fi
+        if $SNAPSHOTCTL_STATE ; then
+            SNAPSHOT_STATUS=$($TOOLS/snapshotctl dump 2>/dev/null | grep '^Update state:' | awk '{print $3}')
+            if [[ "$SNAPSHOT_STATUS" == "none" ]] ; then
+                echo "- Установка в текущую прошивку, обновления системы не обнаружено" &>$NEOLOG
+                get_current_suffix --current
+            elif [[ "$SNAPSHOT_STATUS" == "initiated" ]] ; then
+                abort_neo -e "83.1" -m "Прошивка в состояние обновления, дождитесь установки обновления!"
+            elif [[ "$SNAPSHOT_STATUS" == "unverified" ]] ; then
+                my_print "- Обнаружено завершение установки обновления, утсановка DFE-NEO будет произведена в новую прошивку"
+                if ! $force_start ; then
+                    my_print "- Но прежде чем начать мне нужно, что обновление установлено полностью, првоерить это я пока не могу"
+                    if ! volume_selector "Установлена полностью" "Еще не установлена" ; then
+                        abort_neo -e "83.2" -m "Дождитесь полной установки прошивки прежде чем запускать скрипт"
+                    fi
+                fi
+                get_current_suffix --uncurrent
+            else
+                abort_neo -e "83.4" -m "Неизветсный статус обновления системы"
+            fi
+        fi
+        my_print "- Установка в слот: $OUT_MESSAGE_SUFFIX"
     fi
-
-fi
-
-
+}
 
 
     
