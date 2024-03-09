@@ -92,7 +92,8 @@
 ## उपयोग किए गए बाइनरी
 
 - **Magisk, Busybox, Magiskboot**: [Magisk](https://github.com/topjohnwu/Magisk) के नवीनतम संस्करण से लिया गया।
-- **avbctl, bootctl, snapshotctl, toolbox, toybox, make_ext4fs**: एंड्रॉयड के स्रोत कोड से कॉम्पाइल किया गया है।
+- **avbctl, bootctl, snapshotctl, toolbox, toybox**: एंड्रॉयड के स्रोत कोड से कॉम्पाइल किया गया है।
 - **lptools_new**: बाइनरी बनाने के लिए [GitHub](https://github.com/leegarchat/lptools_new) से ओपन सोर्स कोड का उपयोग किया गया, स्वयं की उपकरण यूटिलिटी कोड भी शामिल है।
+- **make_ext4fs**: [GitHub](https://github.com/sunqianGitHub/make_ext4fs/tree/master/prebuilt_binary)
 - **Bash**: [Debian Packages](https://packages.debian.org/unstable/bash-static) से एक स्थिर बाइनरी ली गई है।
 - **SQLite3**: [रिपॉजिटरी](https://github.com/rojenzaman/sqlite3-magisk-module) से लिया गया है।

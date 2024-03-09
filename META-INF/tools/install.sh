@@ -1199,9 +1199,172 @@ mount_vendor(){ # <--- Определение функции [Аругменто
 
 }; export -f mount_vendor
 
+remove_dfe_neo(){
+    
+    if $DETECT_NEO_IN_BOOT ; then
+        cat $(find_block_neo -b boot$CSUFFIX) > $(find_block_neo -b boot$RCSUFFIX)
+    fi
+    if $DETECT_NEO_IN_VENDOR_BOOT ; then
+        cat $(find_block_neo -b vendor_boot$CSUFFIX) > $(find_block_neo -b vendor_boot$RCSUFFIX)
+    fi
+    if $DETECT_NEO_IN_SUPER && $A_ONLY_DEVICE ; then
+        lptools_new --slot $CSLOTSLOT --super $SUPER_BLOCK --remove "neo_inject$CSUFFIX"
+    elif $DETECT_NEO_IN_SUPER && ! $A_ONLY_DEVICE ; then
+        lptools_new --slot $CSLOTSLOT --suffix $CSUFFIX --super $SUPER_BLOCK --remove "neo_inject$CSUFFIX"
+    fi
+    ramdisk_compress_format=""
+    for boot in $WHERE_NEO_ALREADY_INSTALL; do
+        block_boot=$(find_block_neo -b "$boot")
+        path_check_boot="$TMPN/check_boot_neo/$boot"
+        mkdir -pv $path_check_boot &>$LOGNEO
+        cd "$path_check_boot"
+        magiskboot unpack "$block_boot" &>$LOGNEO
+        if [[ -f "ramdisk.cpio" ]] ; then
+            mkdir ramdisk_files
+            cd ramdisk_files
+            if ! magiskboot cpio ../ramdisk.cpio extract &>$LOGNEO ; then
+                magiskboot decompress ../ramdisk.cpio ../d.cpio &>$path_check_boot/log.decompress
+                rm -f ../ramdisk.cpio 
+                mv ../d.cpio ../ramdisk.cpio
+                ramdisk_compress_format=$(grep "Detected format:" $work_folder/log.decompress.ramdisk | sed 's/.*\[\(.*\)\].*/\1/')
+            fi
+            need_repack=false
+            for fstab in $(find $path_check_boot/ramdisk_files/ -name "fstab.*" ) ; do
+                move_fstab=false
+                grep -q "/venodr/etc/init/hw" "$fstab" && {
+                    sed -i '/\/venodr\/etc\/init\/hw/d' "$fstab"
+                    move_fstab=true
+                }
+                grep -q "/vendor/etc/init/hw" "$fstab" && {
+                    sed -i '/\/vendor\/etc\/init\/hw/d' "$fstab"
+                    move_fstab=true
+                }
+                grep -q "/system/etc/init/hw" "$fstab" && {
+                    sed -i '/\/system\/etc\/init\/hw/d' "$fstab"
+                    move_fstab=true
+                }
+                if $move_fstab ; then
+                    magiskboot cpio "$path_check_boot/ramdisk.cpio" "add 777 ${fstab//$path_check_boot\/ramdisk\//} $fstab" &>$LOGNEO
+                    need_repack=true
+                fi
+            done
+            if $need_repack ; then
+                cd $path_check_boot
+                if [[ -n "$ramdisk_compress_format" ]] ; then
+                    magiskboot compress="${ramdisk_compress_format}" "$path_check_boot/ramdisk.cpio" "$path_check_boot/ramdisk.compress.cpio" &>$LOGNEO
+                    rm -f "$path_check_boot/ramdisk.cpio"
+                    mv "$path_check_boot/ramdisk.compress.cpio" "$path_check_boot/ramdisk.cpio"
+                fi
+                magiskboot repack $block_boot
+                cat $path_check_boot/new-boot.img > $block_boot
+            fi
+        fi
+        cd "$TMPN"
+        rm -rf $path_check_boot
+    done
+
+    my_print "- Удаление завершено"
+
+
+}; export -f remove_dfe_neo
+
+check_dfe_neo_installing(){
+    if ! $force_start; then
+        export DETECT_NEO_IN_BOOT=false
+        export DETECT_NEO_IN_SUPER=false
+        export DETECT_NEO_IN_VENDOR_BOOT=false
+        export NEO_ALREADY_INSTALL=false
+        export WHERE_NEO_ALREADY_INSTALL=""
+        echo "- Поиск neo_inject в boot/vendor_boot только для a/b устройств" &>$NEOLOG {
+            if ! $A_ONLY_DEVICE ; then
+                for boot_partition in "vendor_boot${RCSUFFIX}" "boot${RCSUFFIX}" ; do
+                    echo "- Поиск neo_inject в ${boot_partition}${RCSUFFIX}" &>$NEOLOG {
+                        if $(find_block_neo -c -b ${boot_partition}${RCSUFFIX}) ; then
+                            my_print "- Поиск neo_inject в ${boot_partition}${RCSUFFIX}"
+                            if cat $(find_block_neo -b ${boot_partition}${RCSUFFIX}) | grep mount | grep /etc/init/hw/ &>$LOGNEO ; then
+                                case "$boot_partition" in 
+                                    vendor_boot*) ; export DETECT_NEO_IN_VENDOR_BOOT=true ;;
+                                    boot*) ; DETECT_NEO_IN_BOOT=true ;;
+                                esac
+                                
+                            fi
+                        fi
+                    }
+                done
+            fi
+        }
+        echo "- Поиск neo_inject в super если устройство имеет super" &>$NEOLOG {
+            if "$SUPER_DEVICE" ; then
+                my_print "- Поиск neo_inject в super"
+                if $A_ONLY_DEVICE ; then
+                    if $TOOLS/lptools_new --slot $CSLOTSLOT --super $SUPER_BLOCK --get-info | grep "neo_inject" &>$LOGNEO ; then
+                        DETECT_NEO_IN_SUPER=true
+                    fi
+                elif ! $A_ONLY_DEVICE ; then
+                    if $TOOLS/lptools_new --slot $CSLOTSLOT --suffix $CSUFFIX --super $SUPER_BLOCK --get-info | grep "neo_inject" &>$LOGNEO ; then
+                        DETECT_NEO_IN_SUPER=true
+                    fi
+                fi
+                
+            fi
+        }
+        
+
+        for boot in vendor_boot$CSUFFIX boot$CSUFFIX ; do
+            block_boot=$(find_block_neo -b "$boot")
+            path_check_boot="$TMPN/check_boot_neo/$boot"
+            mkdir -pv $path_check_boot &>$LOGNEO
+            cd "$path_check_boot"
+            magiskboot unpack "$block_boot" &>$LOGNEO
+            if [[ -f "ramdisk.cpio" ]] ; then
+                mkdir ramdisk_files
+                cd ramdisk_files
+                if ! magiskboot cpio ../ramdisk.cpio extract &>$LOGNEO ; then
+                    if magiskboot decompress ../ramdisk.cpio ../d.cpio &>$LOGNEO ; then
+                        rm -f ../ramdisk.cpio &>$LOGNEO
+                        mv ../d.cpio ../ramdisk.cpio
+                    else
+                        continue
+                        cd "$TMPN"
+                        rm -rf $path_check_boot
+                    fi
+                fi
+                for fstab in $(find ./ -name "fstab.*" ) ; do
+                    if grep -q "/venodr/etc/init/hw" "$fstab" || \
+                            grep -q "/vendor/etc/init/hw" "$fstab" || \
+                            grep -q "/system/etc/init/hw" ; then
+                        NEO_ALREADY_INSTALL=true
+                        WHERE_NEO_ALREADY_INSTALL+=" $boot"
+                    fi
+                done
+            fi
+            cd "$TMPN"
+            rm -rf $path_check_boot
+        done
+        if $NEO_ALREADY_INSTALL ; then
+            my_print "- Обнаружен установленный DFE-NEO, удалить или установить снова?"
+            my_print "    Переустановить - громкость вверх (+)"
+            my_print "    Удалить - громкость вверх (-)"
+            if ! volume_selector ; then
+                my_print "**> Переустановить - громкость вверх (+)"
+            else
+                my_print "**> Удалить - громкость вверх (-)"   
+                first_remove_neo_recovery_super_a_b
+                exit 0
+            fi
+        fi
+    fi
+
+
+}; export -f check_neo_installing
+
+
 move_files_from_vendor_hw(){ # <--- Определение функции [Аругментов нет]
 
-    
+    # full_path_to_vendor_folder Путь к папке с вендором
+
+
+
 
 }; export -f move_files_from_vendor_hw
 
