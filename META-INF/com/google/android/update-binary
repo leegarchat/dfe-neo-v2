@@ -127,7 +127,6 @@ export NEOL="$LOGNEO"
 export LOGN="$LOGNEO"
 
 
-
 if [ -f /data/adb/magisk/busybox ] ; then
   unzipbin="/data/adb/magisk/busybox unzip"
 elif [ -f /data/adb/ksu/busybox ] ; then
