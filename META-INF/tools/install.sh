@@ -787,6 +787,60 @@ setup_peremens_for_rc(){ # <--- Определение функции [Аруг�
 
 }; export -f setup_peremens_for_rc
 
+confirm_menu(){ # <--- Определение функции [Аругментов нет]
+    my_print " "
+    my_print " "
+    my_print " "
+    my_print "- Итог конфигурации:"
+    my_print "- Язык $languages"
+    if [[ "$where_to_inject_auto" == "auto" ]] ; then
+        my_print "- Место для inject.img:"
+        my_print "- Прошивка образа будет по порядку в один из"
+        if $FLASH_IN_SUPER ; then
+            my_print ">>>> super < ${CURRENT_SUFFIX} < slot"
+        fi
+        if $FLASH_IN_VENDOR_BOOT ; then
+            my_print ">>>> vendor_boot${UNCURRENT_SUFFIX}"
+        fi
+        if $FLASH_IN_BOOT ; then
+            my_print ">>>> boot${UNCURRENT_SUFFIX}"
+        fi
+    else 
+        my_print "- Место для inject.img:" 
+        my_print ">>>> ${where_to_inject_auto}${UNCURRENT_SUFFIX}" 
+    fi
+    
+    my_print "- Монтировать fstab в early_mount: $modify_early_mount"
+    my_print "- SafetyNetFix: $safety_net_fix"
+    my_print "- Скрыть не зашифрованность: $hide_not_encrypted"
+    if [[ -z "$zygisk_turn_on_parm" ]] ; then 
+        my_print "- zygisk on boot: $zygisk_turn_on"
+    else
+        my_print "- zygisk on boot: $zygisk_turn_on/$zygisk_turn_on_parm"
+    fi
+    if [[ -z "$zygisk_turn_on_parm" ]] ; then 
+        my_print "- Custom denylist: $add_custom_deny_list"
+    else
+        my_print "- Custom denylist: $add_custom_deny_list/$add_custom_deny_list_parm"
+    fi   
+    
+    my_print "- Очистка данных: $wipe_data"
+    my_print "- Удалить данные блокировки: $remove_pin"
+    my_print "- Патерны патчинга fstab: $dfe_paterns"
+    my_print "- custom_reset_prop: $custom_reset_prop"
+    my_print " "
+    my_print " "
+    if ! $force_start ; then
+        my_print "- Продолжить установку с текущими параметрами?"
+        if ! volume_selector "Да" "Выход" ; then 
+            exit 1
+        fi
+    fi
+
+
+}; export -f confirm_menu
+
+
 move_files_from_vendor_hw(){ # <--- Определение функции [Аругментов нет]
 
     # full_path_to_vendor_folder Путь к папке с вендором
@@ -795,6 +849,45 @@ move_files_from_vendor_hw(){ # <--- Определение функции [Ар�
 
 
 }; export -f move_files_from_vendor_hw
+
+check_whare_to_inject(){ # <--- Определение функции [Аругментов нет]
+            
+    if [[ "$where_to_inject" == "auto" ]] ; then
+        if $SUPER_DEVICE ; then
+            FLASH_IN_SUPER=true
+        fi
+        if ! $A_ONLY_DEVICE && $VENDOR_BOOT_DEVICE ; then
+            FLASH_IN_VENDOR_BOOT=true
+        fi
+        if ! $A_ONLY_DEVICE; then
+            FLASH_IN_BOOT=true
+        fi
+    elif [[ "$where_to_inject" == "super" ]] ; then
+        if $SUPER_DEVICE ; then
+            FLASH_IN_SUPER=true
+        else
+            abort_neo -e 71.4 -m "Устройство не имеет super раздела, используйте другой параметр where_to_inject"
+        fi
+    elif [[ "$where_to_inject" == "boot" ]] ; then
+        if ! $A_ONLY_DEVICE; then
+            FLASH_IN_BOOT=true
+            echo "- не A-only wahre to inject" &>$LOGNEO
+        else
+            abort_neo -e 71.3 -m "Устройство должно быть A-B. Используйте where_to_inject с другим параметром super или auto"
+        fi
+    elif [[ "$where_to_inject" == "vendor_boot" ]] ; then
+        if $VENDOR_BOOT_DEVICE && ! $A_ONLY_DEVICE; then
+            FLASH_IN_VENDOR_BOOT=true
+            echo "- Vendor_boot и не A-only wahre to inject" &>$LOGNEO
+        else
+            abort_neo -e 71.2 -m "Устройство не имеет vendor_boot блока или устройство A-only. Используйте where_to_inject с другим параметром"
+        fi
+    fi
+    if ! $FLASH_IN_BOOT && ! $FLASH_IN_VENDOR_BOOT && ! $FLASH_IN_SUPER ; then
+        abort_neo -e 71.5 -m "Устройство вообще не поддерживается"
+    fi
+
+}; export -f check_whare_to_inject
 
 echo "- Определение языка" &>$LOGNEO && { # <--- обычный код
     if echo "$(basename "$ZIPARG3")" | busybox grep -qi "extconfig"; then
@@ -869,8 +962,8 @@ echo "- Определение стандартных переменных" &>$L
     export ALRADY_DISABLE=false
     export install_after_ota=false
     export FLASH_IN_SUPER=false
-    export FLASH_IN_AUTO=false
-    export FLASH_IN_BOOT=true
+    export FLASH_IN_VENDOR_BOOT=false
+    export FLASH_IN_BOOT=false
     export snapshotctl_state=""
     export languages=""
     export NEO_VERSION="DFE NEO 2.5.x"
@@ -1002,7 +1095,7 @@ echo "- Проверка устройства на поддердку если �
     fi
 }
 
-echo "- Поиск базовых блоков recovery|boot|vendor_boot" &>$LOGNEO && { # <--- обычный код
+echo "- Поиск базовых блоков recovery|boot|vendor_boot и проверка для whare_to_inject" &>$LOGNEO && { # <--- обычный код
     my_print "- Поиск recovery раздела"
     if find_block_neo -c -b "recovery" "recovery_a" "recovery_b" ; then
         my_print "- Recovery раздел найден. Будет легко"
@@ -1017,14 +1110,44 @@ echo "- Поиск базовых блоков recovery|boot|vendor_boot" &>$LOG
         BOOT_PATCH+=" vendor_boot"
         VENDOR_BOOT_DEVICE=true
     else
-        if ! $RECOVERY_THIS ; then 
+        if ! $RECOVERY_DEVICE ; then 
             my_print "- Vendor_boot раздел не найден, будет еще сложнее"
         else
             my_print "- Vendor_boot раздел не найден, будет сложнее"
         fi
         VENDOR_BOOT_DEVICE=false
     fi
+
+    check_whare_to_inject
 }
+
+echo "- Проверка доступтности magisk" &>$LOGNEO {
+    case $magisk in
+        "EXT:"* | "ext:"* | "Ext:"*)
+            magisk="$(echo ${magisk} | sed "s/ext://I")"
+            if [[ -f "$(dirname "${ZIPARG3}")/${magisk}" ]]; then
+                my_print "- Установка Magisk: $magisk"
+                MAGISK_ZIP="$(dirname "${ZIPARG3}")/${magisk}"
+            
+            else
+                my_print "- Magisk: Не устанавливать"
+                magisk=false
+            fi
+            ;;
+        *)
+            if [[ -f "$TMPN/unzip/MAGISK/${magisk}.apk" ]]; then
+                MAGISK_ZIP="$TMPN/unzip/MAGISK/${magisk}.apk"
+                my_print "- Установка Magisk: $magisk"
+            elif [[ -f "$TMPN/unzip/MAGISK/${magisk}.zip" ]] ; then
+                MAGISK_ZIP="$TMPN/unzip/MAGISK/${magisk}.zip"
+                my_print "- Установка Magisk: $magisk"
+            else
+                my_print "- Magisk: Не устанавливать"
+                magisk=false
+            fi
+            ;;
+    esac 
+} 
 
 echo "- Проверка запущенной системы и OTA статуса, переопределние слота на противоположный" &>$LOGNEO && { # <--- обычный код
     if $SYS_STATUS ; then
@@ -1070,6 +1193,7 @@ if ! $SYS_STATUS && $A_ONLY_DEVICE && $SUPER_DEVICE ; then
     update_partitions
     check_dfe_neo_installing # Выход если удаляют DFE
     select_argumetns_for_install
+    confirm_menu
     setup_peremens_for_rc
     mount_vendor
     move_files_from_vendor_hw
