@@ -1500,6 +1500,7 @@ move_fstab_from_original_vendor_and_patch(){ # <--- Определение фу�
         if [[ -f "$full_path_to_fstab_into_for" ]] && grep "/userdata" "$full_path_to_fstab_into_for" | grep grep "latemount" | grep -v "#" &>$LOGNEO ; then
             cp -afc "$full_path_to_fstab_into_for" "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab"
             patch_fstab_neo $dfe_paterns -f "$full_path_to_fstab_into_for" -o "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab"
+            final_fstab_name="$original_fstab_name_for"
             return 0
             break
         fi
@@ -1797,11 +1798,160 @@ make_neo_inject_img(){ # <--- Определение функции
             -C "${FS_CONFIG_FILE}" -a "${LABLE}" -L "${LABLE}" \
             "$NEO_IMG" "${TARGET_DIR}"
 
-    resize2fs -M "$NEO_IMG"
-    resize2fs -M "$NEO_IMG"
-    resize2fs -M "$NEO_IMG"
-    resize2fs -f "$NEO_IMG" "$(($(stat -c%s "$NEO_IMG")*2/512))"s
+    resize2fs -M "$NEO_IMG" &>$LOGN
+    resize2fs -M "$NEO_IMG" &>$LOGN
+    resize2fs -M "$NEO_IMG" &>$LOGN
+    resize2fs -f "$NEO_IMG" "$(($(stat -c%s "$NEO_IMG")*2/512))"s &>$LOGN
 }; export -f make_neo_inject_img
+
+check_size_super(){ # <--- Определение функции $1 размер neo_inject в байтах
+    SIZE_NEO_IMG_FUNC="$1"
+    for size_print in 2 4 8 16 32 64 128 ; do
+        if (( $SIZE_NEO_IMG_FUNC + 2000 >= $size_print * 1024 * 1024)) ; then
+            continue
+        fi
+        if (( $FREE_SIZE_INTO_SUPER >= $size_print * 1024 * 1024 )) ; then
+            my_print "- В super достаточно места для записи neo_inject.img"
+            return 0
+            break
+        else
+            return 1
+            break
+            my_print "- В super не достаточно места для записи neo_inject.img"
+            my_print "- Нужно ${size_print}mb"
+        fi
+    done
+
+}; export -f check_size_super
+
+test_mount_neo_inject(){ # <--- Определение функции $1 путь к блоку neo_inject
+    local PATH_BLOCK_NEO="$1"
+
+    mkdir -pv "$TMPN/test_neo_inject_img_mount"
+    if mount -r "$PATH_BLOCK_NEO" "$TMPN/test_neo_inject_img_mount" ; then
+        umount "$TMPN/test_neo_inject_img_mount"
+        return 0
+    fi
+    if mount -r "$PATH_BLOCK_NEO" "$TMPN/test_neo_inject_img_mount" ; then
+        umount "$TMPN/test_neo_inject_img_mount"
+        return 0
+    fi
+    if mount -r "$PATH_BLOCK_NEO" "$TMPN/test_neo_inject_img_mount" ; then
+        umount "$TMPN/test_neo_inject_img_mount"
+        return 0
+    fi
+    if mount -r "$PATH_BLOCK_NEO" "$TMPN/test_neo_inject_img_mount" ; then
+        umount "$TMPN/test_neo_inject_img_mount"
+        return 0
+    fi
+    return 1
+}; export -f test_mount_neo_inject
+
+flash_inject_neo_to_super(){ # <--- Определение функции [Аругментов нет]
+    SIZE_NEO_IMG=$(stat -c%s $NEO_IMG)
+    if $A_ONLY_DEVICE ; then 
+        LPTOOLS_SLOT_SUFFIX=""
+    else
+        LPTOOLS_SLOT_SUFFIX="--slot $CURRENT_SLOT --suffix $CURRENT_SUFFIX"
+    fi
+    $TOOLS/lptools_new --super "$SUPER_BLOCK" $LPTOOLS_SLOT_SUFFIX --remove "neo_inject$CURRENT_SUFFIX"
+    if [[ "$SNAPSHOT_STATUS" == "none" ]] ; then
+        lptools_new --super "$SUPER_BLOCK" $LPTOOLS_SLOT_SUFFIX --clear-cow
+    fi
+    FREE_SIZE_INTO_SUPER="$(lptools_new --free | grep "Free space" | awk '{print $3}')"
+    if ! check_size_super "$SIZE_NEO_IMG" ; then
+        my_print "- Попытка сжать neo_inject.img"
+        resize2fs -M "$NEO_IMG" &>$LOGN
+        resize2fs -M "$NEO_IMG" &>$LOGN
+        resize2fs -M "$NEO_IMG" &>$LOGN
+        SIZE_NEO_IMG=$(stat -c%s $NEO_IMG)
+        if ! check_size_super "$SIZE_NEO_IMG" ; then
+            return 1
+        fi
+    fi
+    if lptools_new --super $SUPER_BLOCK $LPTOOLS_SLOT_SUFFIX --create "neo_inject${CURRENT_SUFFIX}" "$SIZE_NEO_IMG" &>$LOGNEO; then
+        my_print "- Разметка neo_inject с размером $(awk 'BEGIN{printf "%.1f\n", '$SIZE_NEO_IMG'/1024/1024}')MB"
+        if find_block_neo -b "neo_inject${CURRENT_SUFFIX}"; then
+            cat "$NEO_IMG" >"$(find_block_neo -b "neo_inject${CURRENT_SUFFIX}")"
+            if test_mount_neo_inject "$(find_block_neo -b "neo_inject${CURRENT_SUFFIX}")" &>$LOGN ; then
+                my_print "- Успех записи neo_inject в super"
+                FLASH_IN_BOOT=false
+                FLASH_IN_VENDOR_BOOT=false
+            else
+                my_print "- Не удалось смонтировать созданный раздел"
+                return 1
+            fi
+        else
+            my_print "- Не удалость найти созданный раздел"
+            return 1
+        fi
+    else
+        my_print "- Не удалость создать раздел"
+        return 1
+    fi
+    return 0
+
+}; export -f flash_inject_neo_to_super
+
+check_first_stage_fstab(){ # <--- Определение функции [Аругментов нет]
+    for boot in "vendor_boot$CURRENT_SUFFIX" "boot$CURRENT_SUFFIX" ; do
+        mkdir "$TMPN/check_boot_first_stage/" &>$NEOLOG
+        boot_check_folder="$TMPN/check_boot_first_stage/vendor_boot"
+        mkdir -pv "$boot_check_folder/ramdisk_folder" &>$NEOLOG
+        vendor_boot_block=$(find_block_neo vendor_boot)
+        cd "$boot_check_folder"
+        if magiskboot unpack "$vendor_boot_block" ; then
+            if [[ -f "$boot_check_folder/ramdisk.cpio" ]] ; then
+                cd "$boot_check_folder/ramdisk_folder"
+                if ! magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract ; then
+                    magiskboot decompress "$boot_check_folder/ramdisk.cpio" "$boot_check_folder/ramdisk.d.cpio"
+                    rm -f "$boot_check_folder/ramdisk.cpio"
+                    mv "$boot_check_folder/ramdisk.d.cpio" "$boot_check_folder/ramdisk.cpio"
+                fi
+                if magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract ; then
+                    for fstab in $(find "$work_folder/ramdisk/" -name "$final_fstab_name"); do
+                        if grep -w "/system" $fstab | grep -q "first_stage_mount"; then
+                            BOOT_PATCH+="vendor_boot$CURRENT_SUFFIX "
+                        fi
+                    done
+                fi
+            fi
+        fi
+        rm -rf "$TMPN/check_boot_first_stage/"
+    done
+    if [[ -n "$BOOT_PATCH" ]] ; then
+        return 0
+    else
+        return 1
+    fi
+}; export -f check_first_stage_fstab
+
+ramdisk_first_stage_patch(){ # <--- Определение функции $1 передаються именя boot которые надо пропатчить
+    for boot in $1 ; do
+        boot_folder="$TMPN/ramdisk_patch/$boot"
+        mkdir -pv "$TMPN/ramdisk_patch/$boot/ramdisk_folder" &>$LOGN
+
+        if magiskboot unpack "$vendor_boot_block" ; then
+            if [[ -f "$boot_check_folder/ramdisk.cpio" ]] ; then
+                cd "$boot_check_folder/ramdisk_folder"
+                if ! magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract ; then
+                    magiskboot decompress "$boot_check_folder/ramdisk.cpio" "$boot_check_folder/ramdisk.d.cpio"
+                    rm -f "$boot_check_folder/ramdisk.cpio"
+                    mv "$boot_check_folder/ramdisk.d.cpio" "$boot_check_folder/ramdisk.cpio"
+                fi
+                if magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract ; then
+                    for fstab in $(find "$work_folder/ramdisk/" -name "$final_fstab_name"); do
+                        if grep -w "/system" $fstab | grep -q "first_stage_mount"; then
+                            BOOT_PATCH+="vendor_boot$CURRENT_SUFFIX "
+                        fi
+                    done
+                fi
+            fi
+        fi
+        rm -rf "$TMPN/ramdisk_patch"
+    done
+    
+}; export -f ramdisk_first_stage_patch
 
 echo "- Определение языка" &>$LOGNEO && { # <--- обычный код
     if echo "$(basename "$ZIPARG3")" | busybox grep -qi "extconfig"; then
@@ -1866,7 +2016,7 @@ echo "- Определение стандартных переменных" &>$L
     done
     # lng.sh аргументы    /\--------------------/\
     # info аргументы      \/--------------------\/\
-    export BOOT_PATCH="boot"
+    export BOOT_PATCH=""
     export SUPER_THIS=""
     export SUPER_BLOCK=""
     export AONLY=""
@@ -2021,7 +2171,6 @@ echo "- Поиск базовых блоков recovery|boot|vendor_boot и пр
     my_print "- Поиск vendor_boot раздела"
     if find_block_neo -c -b "vendor_boot" "vendor_boot_a" "vendor_boot_b" ; then
         my_print "- Vendor_boot раздел найден. Будет легко"
-        BOOT_PATCH+=" vendor_boot"
         VENDOR_BOOT_DEVICE=true
     else
         if ! $RECOVERY_DEVICE ; then 
@@ -2103,6 +2252,10 @@ echo "- Проверка запущенной системы и OTA статус
     fi
 }
 
+default_functions_for_install(){
+    echo 1
+}
+
 if ! $SYS_STATUS && $A_ONLY_DEVICE && $SUPER_DEVICE ; then
     update_partitions
     check_dfe_neo_installing # Выход если удаляют DFE
@@ -2110,11 +2263,18 @@ if ! $SYS_STATUS && $A_ONLY_DEVICE && $SUPER_DEVICE ; then
     confirm_menu
     setup_peremens_for_rc
     mount_vendor
-    move_files_from_vendor_hw 
+    move_files_from_vendor_hw
+    if ! check_first_stage_fstab ; then
+        abort_neo -e 182.5 -m "Не удалось натйи $final_fstab_name в ramdisk boot/vendor_boot"
+    fi
     NEO_IMG="$TMPN/neo_inject.img"
     make_neo_inject_img "$TMPN/neo_inject$CURRENT_SUFFIX" "neo_inject" "${VENDOR_FOLDER}/etc/init/hw" "${VENDOR_FOLDER}/etc" || {
         abort_neo -e 36.8 -m "Не удалось создать раздел neo_inject.img"
     }
     umount -fl $full_path_to_vendor_folder &>$LOGNEO
+    if ! flash_inject_neo_to_super ; then
+        abort_neo -e 182.2 -m "Не удалось записать образ в super, для A-only это критично. Выход"
+    fi
+    ramdisk_first_stage_patch $BOOT_PATCH    
 
 fi
