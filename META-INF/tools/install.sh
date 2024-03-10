@@ -7,7 +7,7 @@
 # $TOOLS - Константа, объявлена в update-binary. Путь к каталогу с бинарниками $TMP_TOOLS/binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
 
 echo "- Определение PATH с новыми бинарниками" &>>$NEOLOG && { # <--- обычный код
-    binary_pull_busubox="mv cp dirname basename grep [ [[ stat sleep unzip mountpoint sed echo find mkdir ls ln readlink realpath cat awk wc du"
+    binary_pull_busubox="mv cp dirname basename grep [ [[ stat unzip mountpoint sed mkdir ls ln readlink realpath cat awk wc du"
     binary_pull_busubox+=""
     binary_pull_toybox="file"
     # Добавление из busybox
@@ -572,7 +572,7 @@ remove_dfe_neo(){ # <--- Определение функции [Аругмент
         path_check_boot="$TMPN/check_boot_neo/$boot"
         mkdir -pv $path_check_boot &>>$LOGNEO
         cd "$path_check_boot" || exit 66
-        magiskboot unpack "$block_boot" &>>$LOGNEO
+        magiskboot unpack -h "$block_boot" &>>$LOGNEO
         if [[ -f "ramdisk.cpio" ]] ; then
             mkdir $path_check_boot/ramdisk_files
             cd $path_check_boot/ramdisk_files
@@ -629,7 +629,7 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
         mkdir -pv "$TMPN/ramdisk_patch/$boot/ramdisk_folder" &>>$LOGN
         boot_block=$(find_block_neo -b $boot)
         cd $boot_folder
-        magiskboot unpack "$boot_block"
+        magiskboot unpack -h "$boot_block"
         cd "$boot_folder/ramdisk_folder"
         if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract &>>$LOGNEO ; then
             my_print "- Ramdisk зжать... Декомпресия"
@@ -730,7 +730,7 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
                 path_check_boot="$TMPN/check_boot_neo/$boot_check"
                 mkdir -pv $path_check_boot
                 cd $path_check_boot &>>$LOGNEO
-                magiskboot unpack "$block_boot" &>>$LOGNEO
+                magiskboot unpack -h "$block_boot" &>>$LOGNEO
                 if [[ -f "$path_check_boot/ramdisk.cpio" ]] ; then
                     mkdir $path_check_boot/ramdisk_files
                     cd $path_check_boot/ramdisk_files
@@ -957,7 +957,7 @@ add_custom_rc_line_to_inirc_and_add_files(){ # <--- Определение фу�
             chmod 777 "$TMPN/neo_inject${CURRENT_SUFFIX}/magisk.db"
             chmod 777 "$TMPN/neo_inject${CURRENT_SUFFIX}/denylist.txt"
         fi
-        cp magisk "$TMPN/neo_inject${CURRENT_SUFFIX}/"
+        cp $TOOLS/magisk "$TMPN/neo_inject${CURRENT_SUFFIX}/"
         cp $TMPN/unzip/META-INF/tools/init.sh "$TMPN/neo_inject${CURRENT_SUFFIX}/"
         chmod 777 "$TMPN/neo_inject${CURRENT_SUFFIX}/init.sh"
         echo " " >> "$1"
@@ -1218,13 +1218,13 @@ make_neo_inject_img(){ # <--- Определение функции
     {
         find $TARGET_DIR | while read FILE
         do
-            if [ -e "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" ] && [ -n "$3" ] ; then
+            if [ -e "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" ] && [[ -n "$3" ]] ; then
                 OWNER=$(stat -Z "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" | awk '/^S_Context/ {print $2}')
                 if [ -z "${OWNER}" ] ; then
                     OWNER=$(stat -Z $(dirname "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}") | awk '/^S_Context/ {print $2}')
                 fi
-            elif [ -e "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" ] && [ -n "$4" ] ; then
-                OWNER=$($stat -Z "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" | awk '/^S_Context/ {print $2}')
+            elif [[ -e "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" ]] && [[ -n "$4" ]] ; then
+                OWNER=$(stat -Z "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" | awk '/^S_Context/ {print $2}')
                 if [ -z "${OWNER}" ] ; then
                     OWNER=$(stat -Z $(dirname "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}") | awk '/^S_Context/ {print $2}')
                 fi
@@ -1281,14 +1281,15 @@ make_neo_inject_img(){ # <--- Определение функции
     wait
     make_ext4fs -J -T 1230764400 \
             -S "${FILE_CONTEXTS_FILE}" \
-            -l "$(du -sb "${TARGET_DIR}" | awk '{print int($1*50)}')" \
+            -l "$(du -sb "${TARGET_DIR}" | awk '{print int($1*10)}')" \
             -C "${FS_CONFIG_FILE}" -a "${LABLE}" -L "${LABLE}" \
             "$NEO_IMG" "${TARGET_DIR}"
 
     resize2fs -M "$NEO_IMG" &>>$LOGN
     resize2fs -M "$NEO_IMG" &>>$LOGN
     resize2fs -M "$NEO_IMG" &>>$LOGN
-    resize2fs -f "$NEO_IMG" "$(($(stat -c%s "$NEO_IMG")*2/512))"s &>>$LOGN
+    resize2fs -M "$NEO_IMG" &>>$LOGN
+    # resize2fs -f "$NEO_IMG" "$(($(stat -c%s "$NEO_IMG")*2/512))"s &>>$LOGN
     if $SYS_STATUS && [[ "$full_path_to_vendor_folder" == "/vendor" ]] ; then
         echo "- Системный vendor" &>>$LOGNEO
     else
@@ -1387,12 +1388,15 @@ flash_inject_neo_to_super(){ # <--- Определение функции [Ар�
 
 check_first_stage_fstab(){ # <--- Определение функции [Аругментов нет]
     for boot in "vendor_boot$CURRENT_SUFFIX" "boot$CURRENT_SUFFIX" ; do
+        if ! find_block_neo -c -b $boot ; then
+            continue
+        fi
         mkdir "$TMPN/check_boot_first_stage/" &>>$NEOLOG
         boot_check_folder="$TMPN/check_boot_first_stage/$boot"
         mkdir -pv "$boot_check_folder/ramdisk_folder" &>>$NEOLOG
         vendor_boot_block=$(find_block_neo -b $boot)
         cd "$boot_check_folder"
-        if magiskboot unpack "$vendor_boot_block" ; then
+        if magiskboot unpack -h "$vendor_boot_block" ; then
             if [[ -f "$boot_check_folder/ramdisk.cpio" ]] ; then
                 cd "$boot_check_folder/ramdisk_folder"
                 if ! magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract ; then
