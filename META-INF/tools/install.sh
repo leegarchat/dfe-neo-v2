@@ -6,7 +6,7 @@
 # $TOOLS - Константа, объявлена в update-binary. Путь к каталогу с бинарниками $TMP_TOOLS/binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
 
 echo "- Определение PATH с новыми бинарниками" &>$NEOLOG && { # <--- обычный код
-    binary_pull_busubox="mv cp dirname basename grep [ [[ sleep mountpoint sed echo mkdir ls ln readlink realpath cat awk wc"
+    binary_pull_busubox="mv cp dirname basename grep [ [[ stat sleep mountpoint sed echo mkdir ls ln readlink realpath cat awk wc du"
     binary_pull_busubox+=""
     binary_pull_toybox="file"
     # Добавление из busybox
@@ -118,6 +118,13 @@ check_it(){ # <--- Определение функции [Аругментов �
         return 1
     fi
 }; export -f check_it
+
+grep_cmdline() { # <--- Определение функции [Аругменты $1 что найти в cmdline]
+  local REGEX="s/^$1=//p"
+  { echo $(cat /proc/cmdline)$(sed -e 's/[^"]//g' -e 's/""//g' /proc/cmdline) | xargs -n 1; \
+    sed -e 's/ = /=/g' -e 's/, /,/g' -e 's/"//g' /proc/bootconfig; \
+  } 2>/dev/null | sed -n "$REGEX"
+}; export -f grep_cmdline
 
 get_current_suffix(){ # <--- Определение функции [--current] [--uncurrent] задает CURRENT_SUFFIX|UNCURRENT_SUFFIX|CURRENT_SLOT|UNCURRENT_SLOT|OUT_MESSAGE_SUFFIX
     export CURRENT_SUFFIX=""
@@ -641,11 +648,11 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
             if "$SUPER_DEVICE" ; then
                 my_print "- Поиск neo_inject в super"
                 if $A_ONLY_DEVICE ; then
-                    if $TOOLS/lptools_new --slot $CSLOTSLOT --super $SUPER_BLOCK --get-info | grep "neo_inject" &>$LOGNEO ; then
+                    if lptools_new --slot $CSLOTSLOT --super $SUPER_BLOCK --get-info | grep "neo_inject" &>$LOGNEO ; then
                         DETECT_NEO_IN_SUPER=true
                     fi
                 elif ! $A_ONLY_DEVICE ; then
-                    if $TOOLS/lptools_new --slot $CSLOTSLOT --suffix $CSUFFIX --super $SUPER_BLOCK --get-info | grep "neo_inject" &>$LOGNEO ; then
+                    if lptools_new --slot $CSLOTSLOT --suffix $CSUFFIX --super $SUPER_BLOCK --get-info | grep "neo_inject" &>$LOGNEO ; then
                         DETECT_NEO_IN_SUPER=true
                     fi
                 fi
@@ -840,11 +847,214 @@ confirm_menu(){ # <--- Определение функции [Аругменто
 
 }; export -f confirm_menu
 
+add_custom_rc_line_to_inirc_and_add_files(){ # <--- Определение функции передается $1 файл куда сделать запись
+    if $safety_net_fix || $hide_not_encrypted || $add_custom_deny_list || $zygisk_turn_on || [[ -n $custom_reset_prop ]] ; then
+        if $add_custom_deny_list || $zygisk_turn_on ; then
+            cp $TMPN/unzip/META-INF/tools/magisk.db "$TMPN/neo_inject$CURRENT_SUFFIX/" 
+            cp $TMPN/unzip/META-INF/tools/denylist.txt "$TMPN/neo_inject$CURRENT_SUFFIX/"
+            cp $TOOLS/sqlite3 "$TMPN/neo_inject${CURRENT_SUFFIX}/"
+            chmod 777 "$TMPN/neo_inject${CURRENT_SUFFIX}/sqlite3"
+            chmod 777 "$TMPN/neo_inject${CURRENT_SUFFIX}/magisk.db"
+            chmod 777 "$TMPN/neo_inject${CURRENT_SUFFIX}/denylist.txt"
+        fi
+        cp magisk "$TMPN/neo_inject${CURRENT_SUFFIX}/"
+        cp $TMPN/unzip/META-INF/tools/init.sh "$TMPN/neo_inject${CURRENT_SUFFIX}/"
+        chmod 777 "$TMPN/neo_inject${CURRENT_SUFFIX}/init.sh"
+        echo " " >> "$1"
+        echo -e "${add_init_target_rc_line_init}\n" >> "$1"
+        echo -e "${add_init_target_rc_line_early_fs}\n" >> "$1"
+        echo -e "${add_init_target_rc_line_postfs}\n" >> "$1"
+        echo -e "${add_init_target_rc_line_boot_complite}\n" >> "$1"
+    fi
+}; export -f add_custom_rc_line_to_inirc_and_add_files
+
+move_fstab_from_original_vendor_and_patch(){ # <--- Определение функции [Аругментов нет]
+    fstab_names_check="$basename_fstab "
+    fstab_names_check+="${basename_fstab/$hardware_boot/$default_fstab_prop} "
+    fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.device)} "
+    fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.system.device)} "
+    fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.vendor.device)} "
+    fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.odm.device)}"
+
+
+    for original_fstab_name_for in $fstab_names_check ; do
+        full_path_to_fstab_into_for="$full_path_to_vendor_folder$(dirname ${path_original_fstab})/$original_fstab_name_for"
+        if [[ -f "$full_path_to_fstab_into_for" ]] && grep "/userdata" "$full_path_to_fstab_into_for" | grep grep "latemount" | grep -v "#" &>$LOGNEO ; then
+            cp -afc "$full_path_to_fstab_into_for" "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab"
+            patch_fstab_neo $dfe_paterns -f "$full_path_to_fstab_into_for" -o "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab"
+            return 0
+            break
+        fi
+    done
+    return 1
+    
+
+}; export -f move_fstab_from_original_vendor_and_patch
+
+patch_fstab_neo(){ # <--- Определение функции [-m, -r|-p, -f, -o, -v]
+    removeoverlay=false
+    removepattern=""
+    input_fstab=""
+    mountpoint=""
+    output_fstab=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        -m) 
+            removepattern="$removepattern $2--m--"
+            shift 2
+            while [[ "$1" != "-m" && "$1" != "-f" && "$1" != "-o" && "$1" != "-v" ]] && [ $# -gt 0 ]; do 
+                case "$1" in 
+                    -r|-p)
+                        now_check_pattern="$1"
+                        shift 1
+                        if [ $# -gt 0 ] && [ "$(printf '%s' "$1" | cut -c 1)" != "-" ]; then
+                            while [ $# -gt 0 ] && ( [ "$(printf '%s' "$1" | cut -c 1)" != "-" ] ); do
+                                removepattern="${removepattern}-$now_check_pattern--$1-$now_check_pattern--"
+                                shift 1
+                            done
+                        else
+                            echo "No patterns provided for removal." &>$LOGNEO
+                        fi
+                    ;;
+                esac
+            done
+            ;;
+        -f) 
+            input_fstab="$2"
+            shift 2
+            ;;
+        -o) 
+            output_fstab="$2"
+            shift 2
+            ;;
+        -v) 
+            removeoverlay=true
+            shift 1
+            ;;
+        *)  
+            echo "Unknown parameter: $1" &>$LOGNEO
+            exit 1
+            ;;
+        esac
+    done
+
+    while IFS= read -r line; do
+        if $removeoverlay; then
+            case $line in
+                overlay*)
+                    line="#$line"
+                    ;;
+            esac
+        fi
+        case $line in 
+            "# "*)
+                echo "comment line $line" &>$LOGNEO
+            ;;
+            *)
+                if [ "$(echo "$removepattern" | wc -w)" -gt 0 ]; then
+                    for arrp in $removepattern ; do
+                        mountpoint=${arrp%%"--m--"*}
+                        patterns=${arrp##*"--m--"}
+                        remove_paterns=$(echo -e ${patterns//"--p--"/"\n"} | grep "\-\-r--")
+                        replace_patterns=$(echo -e ${patterns//"--r--"/"\n"} | grep "\-\-p--")
+                        if [ "$(echo "$line" | awk '{print $2}')" == "$mountpoint" ]; then
+                            my_print "- Обнаружена точка монтирования: '$mountpoint'"
+                            for replace_pattern in ${replace_patterns//"--p--"/ } ; do
+                                if echo "$line" | grep -q "${replace_pattern%%"--to--"*}" ; then
+                                    my_print "- Замена выполнена ${replace_pattern%%"--to--"*}->${replace_pattern##*"--to--"}"
+                                    line=$(echo "$line" | sed -E "s/,${replace_pattern%%"--to--"*}*[^[:space:]|,]*/,${replace_pattern##*"--to--"}/")
+                                fi
+                                if echo "$line" | grep -q "${replace_pattern%%"--to--"*}" && ! (echo "$line" | grep -q "${replace_pattern##*"--to--"}"); then 
+                                    my_print "- Замена выполнена ${replace_pattern%%"--to--"*}->${replace_pattern##*"--to--"}"
+                                    line=$(echo "$line" | sed -E "s/${replace_pattern%%"--to--"*}*[^[:space:]|,]*/${replace_pattern##*"--to--"}/")
+                                fi 
+                            done
+                            for remove_pattern in ${remove_paterns//"--r--"/ }; do
+                                if echo "$line" | grep -q "${remove_pattern}" ; then 
+                                    my_print "- Флаг удален: ${remove_pattern}"
+                                    line=$(echo "$line" | sed -E "s/,${remove_pattern}*[^[:space:]|,]*//")
+                                fi
+                                if echo "$line" | grep -q "${remove_pattern}" ; then 
+                                    my_print "- Флаг удален: ${remove_pattern}"
+                                    line=$(echo "$line" | sed -E "s/${remove_pattern}*[^[:space:]|,]*//")
+                                fi
+                            done
+                        fi
+
+
+                    done
+                fi
+            ;;
+        esac
+        echo "$line" >>"$output_fstab"
+    done <"$input_fstab"
+
+}; export -f patch_fstab_neo
 
 move_files_from_vendor_hw(){ # <--- Определение функции [Аругментов нет]
 
-    # full_path_to_vendor_folder Путь к папке с вендором
+    echo "- Определение ro_haedware and fstab_suffix" &>$LOGNEO { # <--- обычный код
+        if [[ -z "$ro_hardware" ]] ; then 
+            hardware_boot=$(getprop ro.hardware)
+        else
+            hardware_boot="$ro_hardware"
+        fi
+        if [[ -z "$hardware_boot" ]]; then
+            hardware_boot=$(getprop ro.boot.hardware)
+        fi
+        
+        if [[ -z "$hardware_boot" ]]; then
+            hardware_boot=$(getprop ro.boot.hardware.platform)
+        fi
+        default_fstab_prop=$(getprop ro.boot.fstab_suffix)
+    }
+    echo "- создание структуры папки для make_ext4fs и копирование из inithw" &>$LOGNEO { # <--- обычный код
+        VENDOR_FOLDER="$full_path_to_vendor_folder"
+        mkdir $TMPN/neo_inject${CURRENT_SUFFIX}
+        mkdir "$TMPN/neo_inject${CURRENT_SUFFIX}/lost+found"
+        cp -afc ${VENDOR_FOLDER}/etc/init/hw/* $TMPN/neo_inject${CURRENT_SUFFIX}/
+    }
+    echo "- Поиск fstab по .rc файлам" &>$LOGNEO { # <--- обычный код
+        for file_find in "$TMPN/neo_inject${CURRENT_SUFFIX}"/*.rc ; do
+            if grep "mount_all" $file_find | grep "\-\-late" | grep -v "#" &>$LOGNEO; then
+                if grep "mount_all --late" $file_find | grep -v "#" &>$LOGNEO; then
+                    if [[ -z "$path_original_fstab" ]] && [[ -z "$basename_fstab" ]] ; then
+                        path_original_fstab="/etc/fstab.$hardware_boot"
+                        basename_fstab=$(basename "$path_original_fstab")
+                    fi
+                    sed -i '/^    mount_all.*--late$/s/.*/    mount_all \/vendor\/etc\/init\/hw\/fstab.'$hardware_boot' --late/g' $file_find
+                    if $modify_early_mount ; then
+                        sed -i '/^    mount_all.*--early$/s/.*/    mount_all \/vendor\/etc\/init\/hw\/fstab.'$hardware_boot' --early/g' $file_find
+                    fi
+                    last_init_rc_file_for_write=$file_find
+                else    
+                    fstab_find="$(grep mount_all $file_find | grep "\-\-late" | grep -v "#" | sort -u)" 
+                    new_path_fstab="$(echo "$fstab_find" | sed "s|[^ ]*fstab[^ ]*|/vendor/etc/init/hw/fstab.$hardware_boot|")"
+                    sed -i "s|$fstab_find|$new_path_fstab|g" "$file_find"
+                    if $modify_early_mount ; then
+                        sed -i "s|${fstab_find//"--late"/"--early"}|${new_path_fstab//"--late"/"--early"}|g" "$file_find"
+                    fi
+                    if [[ -z "$path_original_fstab" ]] && [[ -z "$basename_fstab" ]] ; then
+                        path_original_fstab="$(echo "$fstab_find" | sed -n 's/.* \/[^/]*\(\/.*\) --late/\1/p')"
+                        if (echo "$path_original_fstab" | grep -q "\\$"); then
+                            basename_fstab="$(basename $(echo "$fstab_find" | sed -n 's/.* \/[^/]*\(\/.*\) --late/\1/p' | sed 's/\(\$.*\)//')$hardware_boot)"
+                        else 
+                            basename_fstab="$(basename $(echo "$fstab_find" | sed -n 's/.* \/[^/]*\(\/.*\) --late/\1/p'))"
+                        fi
+                    fi
+                    last_init_rc_file_for_write=$file_find
+                fi
+            fi
+        done
+        if [[ -z "$path_original_fstab" ]] || [[ -z "$basename_fstab" ]]; then
 
+            abort_neo -e 36.2 -m "Устройство не поддерживается"
+        fi
+        add_custom_rc_line_to_inirc_and_add_files "$last_init_rc_file_for_write"
+        move_fstab_from_original_vendor_and_patch || abort_neo -e 36.1 -m "Ни один из fstab не найден в /vendor/etc/[${fstab_names_check// /\|}]"
+        [[ -f "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab" ]] || abort_neo -e 36.6 -m "В процессе патчинга что то пошло не так"
+
+    }
 
 
 
@@ -888,6 +1098,92 @@ check_whare_to_inject(){ # <--- Определение функции [Аруг�
     fi
 
 }; export -f check_whare_to_inject
+
+make_neo_inject_img(){ # <--- Определение функции
+    TARGET_DIR="$1"
+    LABLE="$2"
+    SYSTEM_FOLDER_OWNER="$3"
+    INJECT_TMP_FOLDER_ONWER="$4"
+    FILE_CONTEXTS_FILE="$TMPN/${LABLE}_file_contexts"
+    FS_CONFIG_FILE="$TMPN/${LABLE}_fs_config"
+    for file in "$FILE_CONTEXTS_FILE" "$FS_CONFIG_FILE" ; do
+        [ -f "$file" ] && rm -f "$file"
+    done
+    {
+    find $TARGET_DIR | while read FILE
+    do
+        if [ -e "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" ] && [ -n "$3" ] ; then
+            OWNER=$(stat -Z "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" | awk '/^S_Context/ {print $2}')
+            if [ -z "${OWNER}" ] ; then
+                OWNER=$(stat -Z $(dirname "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}") | awk '/^S_Context/ {print $2}')
+            fi
+        elif [ -e "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" ] && [ -n "$4" ] ; then
+            OWNER=$($stat -Z "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" | awk '/^S_Context/ {print $2}')
+            if [ -z "${OWNER}" ] ; then
+                OWNER=$(stat -Z $(dirname "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}") | awk '/^S_Context/ {print $2}')
+            fi
+        else
+            OWNER=$(stat -Z "$FILE" | awk '/^S_Context/ {print $2}')
+            if [ -z "${OWNER}" ] ; then
+                OWNER=$(stat -Z $(dirname "$FILE") | awk '/^S_Context/ {print $2}')
+            fi
+        fi
+        FILE_FORMAT=$(echo "${FILE#$TARGET_DIR}" | awk '{ gsub(/\./, "\\."); gsub(/\ /, "\\ "); gsub(/\+/, "\\+"); gsub(/\[/, "\\["); print }')
+        if [ -d "${FILE}" ] ; then 
+            CONTEXT_LINE="/${LABLE}${FILE_FORMAT}(/.*)? ${OWNER}"
+            echo $CONTEXT_LINE >> "${FILE_CONTEXTS_FILE}"
+        fi
+            su_contects=false
+        for check_su_contects in "magisk.db" "denylist.txt" "sqlite3" "init.sh" "magisk" ; do 
+            if echo "${FILE#$TARGET_DIR}" | grep -q "$check_su_contects" ; then 
+               su_contects=true 
+            fi
+        done
+        if $su_contects ; then 
+            CONTEXT_LINE="/${LABLE}${FILE_FORMAT} u:r:su:s0"
+        else 
+            CONTEXT_LINE="/${LABLE}${FILE_FORMAT} ${OWNER}"
+        fi
+        if ! [ "${LABLE}${FILE#$TARGET_DIR}" == "${LABLE}" ] ; then
+            echo $CONTEXT_LINE >> "${FILE_CONTEXTS_FILE}"
+        fi
+        
+    done
+    } & {
+
+    find $TARGET_DIR | while read FILE
+    do
+        if ! [ "${LABLE}${FILE#$TARGET_DIR}" == "${LABLE}" ] ; then
+            if [ -e "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" ] && [ -n "$3" ]  ; then
+                PERMISSIONS_GROUPS=$(stat -c "%u %g 0%a" "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}")
+                LINKER_FILE=$(stat "$SYSTEM_FOLDER_OWNER${FILE#$TARGET_DIR}" | awk -F"'" '/->/ && !found {split($0, arr, "->"); gsub(/^[[:space:]]+|[[:space:]]+$/, "", arr[2]); gsub(/\ /, "\\ ", arr[2]); gsub(/[\047]/, "", arr[2]); print arr[2]; found=1}')
+            elif [ -e "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" ] && [ -n "$4" ]  ; then
+                PERMISSIONS_GROUPS=$(stat -c "%u %g 0%a" "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}")
+                LINKER_FILE=$(stat "$INJECT_TMP_FOLDER_ONWER${FILE#$TARGET_DIR}" | awk -F"'" '/->/ && !found {split($0, arr, "->"); gsub(/^[[:space:]]+|[[:space:]]+$/, "", arr[2]); gsub(/\ /, "\\ ", arr[2]); gsub(/[\047]/, "", arr[2]); print arr[2]; found=1}')
+            else
+                PERMISSIONS_GROUPS=$(stat -c "%u %g 0%a" "$FILE")
+                LINKER_FILE=$(stat "$FILE" | awk -F"'" '/->/ && !found {split($0, arr, "->"); gsub(/^[[:space:]]+|[[:space:]]+$/, "", arr[2]); gsub(/\ /, "\\ ", arr[2]); gsub(/[\047]/, "", arr[2]); print arr[2]; found=1}')
+            fi
+            
+            FILE_FORMAT=$(echo "${FILE#$TARGET_DIR}" | awk '{ gsub(/\ /, "\\ "); print }')
+            FS_CONFIG_LINE="${LABLE}${FILE_FORMAT} ${PERMISSIONS_GROUPS} ${LINKER_FILE}"
+            echo "$FS_CONFIG_LINE" >> "${FS_CONFIG_FILE}"
+        fi
+        
+    done
+    }
+    wait
+    make_ext4fs -J -T 1230764400 \
+            -S "${FILE_CONTEXTS_FILE}" \
+            -l "$(du -sb "${TARGET_DIR}" | awk '{print int($1*50)}')" \
+            -C "${FS_CONFIG_FILE}" -a "${LABLE}" -L "${LABLE}" \
+            "$NEO_IMG" "${TARGET_DIR}"
+
+    resize2fs -M "$NEO_IMG"
+    resize2fs -M "$NEO_IMG"
+    resize2fs -M "$NEO_IMG"
+    resize2fs -f "$NEO_IMG" "$(($(stat -c%s "$NEO_IMG")*2/512))"s
+}; export -f make_neo_inject_img
 
 echo "- Определение языка" &>$LOGNEO && { # <--- обычный код
     if echo "$(basename "$ZIPARG3")" | busybox grep -qi "extconfig"; then
@@ -1166,7 +1462,7 @@ echo "- Проверка запущенной системы и OTA статус
             fi
         fi
         if $SNAPSHOTCTL_STATE ; then
-            SNAPSHOT_STATUS=$($TOOLS/snapshotctl dump 2>/dev/null | grep '^Update state:' | awk '{print $3}')
+            SNAPSHOT_STATUS=$(snapshotctl dump 2>/dev/null | grep '^Update state:' | awk '{print $3}')
             if [[ "$SNAPSHOT_STATUS" == "none" ]] ; then
                 echo "- Установка в текущую прошивку, обновления системы не обнаружено" &>$NEOLOG
                 get_current_suffix --current
@@ -1196,6 +1492,11 @@ if ! $SYS_STATUS && $A_ONLY_DEVICE && $SUPER_DEVICE ; then
     confirm_menu
     setup_peremens_for_rc
     mount_vendor
-    move_files_from_vendor_hw
+    move_files_from_vendor_hw 
+    NEO_IMG="$TMPN/neo_inject.img"
+    make_neo_inject_img "$TMPN/neo_inject$CURRENT_SUFFIX" "neo_inject" "${VENDOR_FOLDER}/etc/init/hw" "${VENDOR_FOLDER}/etc" || {
+        abort_neo -e 36.8 -m "Не удалось создать раздел neo_inject.img"
+    }
+    umount -fl $full_path_to_vendor_folder &>$LOGNEO
 
 fi
