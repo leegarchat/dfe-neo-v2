@@ -814,7 +814,6 @@ find_block_neo(){ # <--- Определение функции -с провер�
     done
 
     for block in "${block_names[@]}"; do
-        # my_print "- Searching for block $block"
         if [ -h /dev/block/by-name/$block ]; then
             if ! [ -h "$(readlink /dev/block/by-name/$block)" ] && [ -b "$(readlink /dev/block/by-name/$block)" ]; then
                 found_blocks+="$(readlink /dev/block/by-name/$block) "
@@ -841,8 +840,8 @@ find_block_neo(){ # <--- Определение функции -с провер�
 }; export -f find_block_neo
 
 volume_selector(){ # <--- Определение функции  [Аругменты $1 - Выбор (+)] [Аругменты $2 - Выбор (-)]
-    my_print "    $1 [Громкость вверх (+)]"
-    my_print "    $2 [Громкость вниз (-)]"
+    my_print "    $1 $word1"
+    my_print "    $2 $word2"
     volume_selector_count=0
     while true; do
         while true; do
@@ -851,18 +850,18 @@ volume_selector(){ # <--- Определение функции  [Аругмен
             volume_selector_count=$((volume_selector_count + 1))
             if (grep -q 'KEY_VOLUMEUP *DOWN' $volume_selector_events_file); then
                 rm -rf $volume_selector_events_file
-                my_print "**> $1 [Громкость вверх (+)]"
+                my_print "**> $1 $word1"
                 return 0
             elif (grep -q 'KEY_VOLUMEDOWN *DOWN' $volume_selector_events_file); then
                 rm -rf $volume_selector_events_file
-                my_print "**> $2 [Громкость вниз (-)]"
+                my_print "**> $2 $word2"
                 return 1
             fi
             [ $volume_selector_count -gt 300 ] && break
         done
         if $volume_selector_error; then
             rm -rf $volume_selector_events_file
-            abort_neo -e 2.1 -m "Нажатие не распознано"
+            abort_neo -e 2.1 -m "$word118"
         else
             volume_selector_error=true
         fi
@@ -874,7 +873,7 @@ unmap_all_partitions(){ # <--- Определение функции [Аругм
         if [[ -h "$partitions" ]] && [[ -b "$(readlink -f "$partitions")" ]] ; then 
             
             partitions_name="$(basename "$partitions")"
-            my_print "- Удаление разметки: $partitions_name"
+            my_print "- $word3: $partitions_name"
 
             umount -fl "$partitions" &>>$LOGNEO && umount -fl "$partitions" &>>$LOGNEO && umount -fl "$partitions" &>>$LOGNEO && umount -fl "$partitions" &>>$LOGNEO
             umount -fl "$(readlink -f "$partitions")" &>>$LOGNEO && umount -fl "$(readlink -f "$partitions")" &>>$LOGNEO && umount -fl "$(readlink -f "$partitions")" &>>$LOGNEO && umount -fl "$(readlink -f "$partitions")" &>>$LOGNEO
@@ -890,7 +889,7 @@ unmap_all_partitions(){ # <--- Определение функции [Аругм
 
 update_partitions(){ # <--- Определение функции [Аругментов нет]
 
-    my_print "- Обновление разделов"
+    my_print "- $word4"
     unmap_all_partitions
 
     good_slot_suffix=""
@@ -945,8 +944,8 @@ update_partitions(){ # <--- Определение функции [Аругме�
             *)
                 my_print " !!!!!!!!! " 
                 if ! $force_start ; then 
-                    my_print "- Скрипт не смог определить загрузочный слот. Выберите загрузочный слот самостоятельно"
-                    if volume_selector "Выбрать слот _a" "Выбрать слот _b" ; then 
+                    my_print "- $word5"
+                    if volume_selector "$word142" "$word143" ; then 
                         FINAL_ACTIVE_SLOT=0
                         FINAL_ACTIVE_SUFFIX=_a
                     else
@@ -954,7 +953,7 @@ update_partitions(){ # <--- Определение функции [Аругме�
                         FINAL_ACTIVE_SUFFIX=_b
                     fi
                 else 
-                    abort_neo -e 119.1 -m "Скрипт не смог определить загрузочный слот. В режиме force_start=true установка не доступтна"
+                    abort_neo -e 119.1 -m "$word119"
                 fi
             ;;
         esac
@@ -963,29 +962,29 @@ update_partitions(){ # <--- Определение функции [Аругме�
         for partition in $(lptools_new --super $SUPER_BLOCK --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | grep -v "inject_neo" | awk '{print $1}') ; do
             partition_name=${partition/"NamePartInGroup->"/}
             if lptools_new --super "$SUPER_BLOCK" --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --map $partition_name &>>$NEOLOG ; then
-                my_print "- Разметка раздела: $partition_name"
+                my_print "- $word6: $partition_name"
                 sleep 0.5
             else 
-                my_print "- Не удалось разметить: $partition_name"
+                my_print "- $word7: $partition_name"
             fi
         done
 
         if ! [[ "$CURRENT_SUFFIX" == "$FINAL_ACTIVE_SUFFIX" ]] ; then
             magisk resetprop ro.boot.slot_suffix $FINAL_ACTIVE_SUFFIX
             if grep androidboot.slot_suffix /proc/bootconfig ; then
-                my_print "- Подмена /proc/bootconfig с новыми значениями"
+                my_print "- $word8"
                 edit_text="$(cat /proc/bootconfig | sed 's/androidboot.slot_suffix = "'$CURRENT_SUFFIX'"/androidboot.slot_suffix = "'$FINAL_ACTIVE_SUFFIX'"/')"
                 echo -e "$edit_text" > $TMPN/bootconfig_new 
                 mount $TMPN/bootconfig_new /proc/bootconfig &>>$LOGNEO
             fi
             if grep "androidboot.slot_suffix=$CURRENT_SUFFIX" /proc/cmdline || grep "androidboot.slot=$CURRENT_SUFFIX" /proc/cmdline ; then
-                my_print "- Подмена /proc/cmdline с новыми значениями"
+                my_print "- $word9"
                 edit_text="$(cat /proc/cmdline | sed 's/androidboot.slot_suffix='$CURRENT_SUFFIX'/androidboot.slot_suffix='$FINAL_ACTIVE_SUFFIX'/' | sed 's/androidboot.slot='$CURRENT_SUFFIX'/androidboot.slot='$FINAL_ACTIVE_SUFFIX'/')"
                 echo -e "$edit_text" > $TMPN/cmdline_new 
                 mount $TMPN/cmdline_new /proc/cmdline &>>$LOGNEO
             fi
             if $BOOTCTL_STATE ; then
-                my_print "- Переключение загрузочного слота на $FINAL_ACTIVE_SLOT"
+                my_print "- $word10: $FINAL_ACTIVE_SLOT"
                 bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
             fi
         fi
@@ -994,10 +993,10 @@ update_partitions(){ # <--- Определение функции [Аругме�
         for partition in $(lptools_new --super $SUPER_BLOCK --slot $CURRENT_SLOT --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | grep -v "inject_neo" | awk '{print $1}') ; do
             partition_name=${partition/"NamePartInGroup->"/}
             if lptools_new --super "$SUPER_BLOCK"  --slot $CURRENT_SLOT --map $partition_name &>>$NEOLOG ; then
-                my_print "- Разметка раздела: $partition_name"
+                my_print "- $word6: $partition_name"
                 sleep 0.2
             else 
-                my_print "- Не удалось разметить: $partition_name"
+                my_print "- $word7: $partition_name"
             fi
         done
     fi
@@ -1019,9 +1018,9 @@ find_super_partition(){ # <--- Определение функции [Аругм
 select_argumetns_for_install(){ # <--- Определение функции [Аругментов нет]
     if [[ $hide_not_encrypted == "ask" ]] ; then
         my_print " "
-        my_print "- Установить патч, который скроет отсутствие шифрования?"
-        my_print "- **Будет работать только если установлен Magisk или KSU или Selinux в режиме Permissive"
-        if volume_selector "Да 'установить'" "Нет 'не устанавливать'" ; then
+        my_print "- $word11"
+        my_print "- **$word12"
+        if volume_selector "$word144" "$word145" ; then
             hide_not_encrypted=true
         else
             hide_not_encrypted=false
@@ -1029,9 +1028,9 @@ select_argumetns_for_install(){ # <--- Определение функции [А
     fi
     if [[ $safety_net_fix == "ask" ]] ; then
         my_print " "
-        my_print "- Установить встроенный safety net fix?"
-        my_print "- **Будет работать только если установлен Magisk или KSU или Selinux в режиме Permissive"
-        if volume_selector "Да 'установить'" "Нет 'не устанавливать'" ; then
+        my_print "- $word13"
+        my_print "- **$word12"
+        if volume_selector "$word144" "$word145" ; then
             safety_net_fix=true
         else
             safety_net_fix=false
@@ -1042,8 +1041,8 @@ select_argumetns_for_install(){ # <--- Определение функции [А
     else
         if [[ $wipe_data == "ask" ]] ; then
             my_print " "
-            my_print "- Сделать wipe data? удалит все данные прошивки, внутренняя память не будет тронута"
-            if volume_selector "Да 'удалить'" "Нет 'не трогать!'" ; then
+            my_print "- $word14"
+            if volume_selector "$word146" "$word147" ; then
                 wipe_data=true
             else
                 wipe_data=false
@@ -1052,8 +1051,8 @@ select_argumetns_for_install(){ # <--- Определение функции [А
     fi
     if [[ $remove_pin == "ask" ]] ; then
         my_print " "
-        my_print "- Удалить данные экрана блокировки?"
-        if volume_selector "Да 'Удалить'" "Нет 'не трогать!'" ; then
+        my_print "- $word15"
+        if volume_selector "$word146" "$word147" ; then
             remove_pin=true
         else
             remove_pin=false
@@ -1061,9 +1060,9 @@ select_argumetns_for_install(){ # <--- Определение функции [А
     fi
     if [[ $modify_early_mount == "ask" ]] ; then
         my_print " "
-        my_print "- Подключать измененный fstab во время раннего монтирования разделов?"
-        my_print "- ** Нужно в основном если вы использовали дополнительные ключи dfe_paterns для системных разделов или использовали ключ -v для удаления оверлеев"
-        if volume_selector "Да 'Подключить'" "Нет 'Нет нужды'" ; then
+        my_print "- $word16"
+        my_print "- **$word17"
+        if volume_selector "$word148" "$word149" ; then
             modify_early_mount=true
         else
             modify_early_mount=false
@@ -1071,9 +1070,9 @@ select_argumetns_for_install(){ # <--- Определение функции [А
     fi
     if [[ $disable_verity_and_verification == "ask" ]] ; then
         my_print " "
-        my_print "- Удалить проверку целостности системы?"
-        my_print "- ** Эта опция патчит vbmeta и system_vbmeta тем самым отключает проверку целостности системы, включите эту опцию если получили bootloop или если знаете зачем она нужна, в ином случае просто не трогайте"
-        if volume_selector "Да 'отключить'" "Нет 'не трогать'" ; then
+        my_print "- $word18"
+        my_print "- **$word19"
+        if volume_selector "$word150" "$word147" ; then
             disable_verity_and_verification=true
         else
             disable_verity_and_verification=false
@@ -1082,15 +1081,15 @@ select_argumetns_for_install(){ # <--- Определение функции [А
 
     if [[ $zygisk_turn_on == "ask" ]] ; then
         my_print " "
-        my_print "- Принудительно включить zygisk во время включения?"
-        my_print "- ** Опция будет работать только если включен maghisk"
-        if volume_selector "Да 'включить'" "Нет 'не надо'" ; then
+        my_print "- $word20"
+        my_print "- **$word21"
+        if volume_selector "$word151" "$word152" ; then
             zygisk_turn_on=true
             my_print " "
-            my_print "- Какой режим принудительного запуска использовать?"
-            my_print "- ** Постоянный, это значит что будет включаться каждый раз при запуске системы"
-            my_print "- ** Одноразовый, это значит что запуститься будет включен только при первом запуске системы, в дальнейшом будет игнорироваться принудительный запуск"
-            if volume_selector "'Постоянно'" "'Одноразово'" ; then
+            my_print "- $word22"
+            my_print "- **$word23"
+            my_print "- **$word24"
+            if volume_selector "$word153" "$word154" ; then
                 zygisk_turn_on_parm=always_on_boot
             else    
                 zygisk_turn_on_parm=first_time_boot
@@ -1104,15 +1103,15 @@ select_argumetns_for_install(){ # <--- Определение функции [А
     fi
     if [[ $add_custom_deny_list == "ask" ]] ; then
         my_print " "
-        my_print "- Принудительно делать запись в denylist во время включения?"
-        my_print "- ** Опция будет работать только если включен zygisk"
-        if volume_selector "Да 'включить'" "Нет 'не надо'" ; then
+        my_print "- $word25"
+        my_print "- **$word26"
+        if volume_selector "$word153" "$word154" ; then
             add_custom_deny_list=true
             my_print " "
-            my_print "- Какой режим принудительного запуска использовать?"
-            my_print "- ** Постоянный, это значит что будет включаться каждый раз при запуске системы"
-            my_print "- ** Одноразовый, это значит что запуститься будет включен только при первом запуске системы, в дальнейшом будет игнорироваться принудительный запуск"
-            if volume_selector "'Постоянно'" "'Одноразово'" ; then
+            my_print "- $word22"
+            my_print "- **$word23"
+            my_print "- **$word24"
+            if volume_selector "$word153" "$word154" ; then
                 add_custom_deny_list_parm=first_time_boot
             else
                 add_custom_deny_list_parm=always_on_boot
@@ -1128,36 +1127,36 @@ select_argumetns_for_install(){ # <--- Определение функции [А
 
 mount_vendor(){ # <--- Определение функции [Аругментов нет]
 
-    my_print "- Монтирования vendor"
+    my_print "- $word27"
     VENDOR_BLOCK=""
     if [[ "$SNAPSHOT_STATUS" == "unverified" ]] && $SUPER_DEVICE ; then
         if snapshotctl map &>>$NEOLOG ; then
             if [[ -h "/dev/block/mapper/vendor$CURRENT_SUFFIX" ]] ; then
                 VENDOR_BLOCK="/dev/block/mapper/vendor$CURRENT_SUFFIX"
-                my_print "- dm блок vendor: $(basename $(readlink $VENDOR_BLOCK))"
+                my_print "- $word28: $(basename $(readlink $VENDOR_BLOCK))"
             else
-                abort_neo -e 124.2 -m "С разметкой что то пошло не так, vendor$CURRENT_SUFFIX не найден"
+                abort_neo -e 124.2 -m "$word120: vendor$CURRENT_SUFFIX"
             fi
         else
-            abort_neo -e 124.1 -m "Не удалось разметить разделы после OTA"
+            abort_neo -e 124.1 -m "$word121"
         fi
     elif ! $SUPER_DEVICE; then
         VENDOR_BLOCK="$(find_block_neo -b "vendor$CURRENT_SUFFIX")"
-        my_print "- Vendor расположен в отдельном блоке "
-        my_print "- Блок vendor: $(basename $(readlink $VENDOR_BLOCK))"
+        my_print "- $word29"
+        my_print "- $word30: $(basename $(readlink $VENDOR_BLOCK))"
     elif $SUPER_DEVICE ; then
         if [[ -h "/dev/block/mapper/vendor$CURRENT_SUFFIX" ]] ; then
             VENDOR_BLOCK="/dev/block/mapper/vendor$CURRENT_SUFFIX"
-            my_print "- dm блок vendor: $(basename $(readlink $VENDOR_BLOCK))"
+            my_print "- $word28: $(basename $(readlink $VENDOR_BLOCK))"
         else
-            abort_neo -e 124.5 -m "С разметкой что то пошло не так, vendor$CURRENT_SUFFIX не найден"
+            abort_neo -e 124.5 -m "$word120: vendor$CURRENT_SUFFIX"
         fi
     fi
     
-    [[ -z "${VENDOR_BLOCK}" ]] && abort_neo -e 25.1 -m "Vendor не найден" 
+    [[ -z "${VENDOR_BLOCK}" ]] && abort_neo -e 25.1 -m "$word122" 
 
     if ! $SYS_STATUS ; then
-        my_print "- Размонтирования vendor"
+        my_print "- $word31"
         umount -fl "${VENDOR_BLOCK}" &>>$LOGNEO
         umount -fl "${VENDOR_BLOCK}" &>>$LOGNEO
         umount -fl "${VENDOR_BLOCK}" &>>$LOGNEO
@@ -1170,19 +1169,19 @@ mount_vendor(){ # <--- Определение функции [Аругменто
     full_path_to_vendor_folder=$TMPN/mapper/$name_vendor_block
 
     mkdir -pv $full_path_to_vendor_folder &>>$LOGN
-    my_print "- Монтирование vendor в временную папку"
+    my_print "- $word32"
     if ! mount -o,ro $VENDOR_BLOCK $full_path_to_vendor_folder &>>$LOGNEO ; then
         mount -o,ro $VENDOR_BLOCK $full_path_to_vendor_folder &>>$LOGNEO
     fi
     if ! mountpoint -q $full_path_to_vendor_folder ; then
         if $SYS_STATUS ; then
             if [[ "$SNAPSHOT_STATUS" == "unverified" ]]; then 
-                abort_neo -e 25.4 -m "Не получилось смонтировать vendor, вариантов установки после ота больше нет" 
+                abort_neo -e 25.4 -m "$word123" 
             else
                 full_path_to_vendor_folder=/vendor
             fi
         else
-            abort_neo -e 25.2 -m "Не получилось смонтировать vendor $name_vendor_block" 
+            abort_neo -e 25.2 -m "$word124 $name_vendor_block" 
         fi
     fi
 
@@ -1255,7 +1254,7 @@ remove_dfe_neo(){ # <--- Определение функции [Аругмент
         rm -rf $path_check_boot
     done
 
-    my_print "- Удаление завершено"
+    my_print "- $word33"
 
 
 }; export -f remove_dfe_neo
@@ -1267,12 +1266,12 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
         mkdir -pv "$TMPN/ramdisk_patch/$boot/ramdisk_folder" &>>$LOGN
         boot_block=$(find_block_neo -b $boot)
         cd $boot_folder
-        my_print "- Распаковка $boot"
+        my_print "- $word34 $boot"
         magiskboot unpack -h "$boot_block" &>>$LOGN
         cd "$boot_folder/ramdisk_folder"
-        my_print "- Распаковка ramdisk.cpio"
+        my_print "- $word34 ramdisk.cpio"
         if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract &>>$LOGNEO ; then
-            my_print "- Ramdisk зжать... Декомпресия"
+            my_print "- $word35"
             magiskboot decompress "$boot_folder/ramdisk.cpio" "$boot_folder/ramdisk.d.cpio" &>$boot_folder/log.decompress
             rm -f "$boot_folder/ramdisk.cpio"
             mv "$boot_folder/ramdisk.d.cpio" "$boot_check_folder/ramdisk.cpio"
@@ -1282,7 +1281,7 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
             magiskboot cpio "$boot_folder/ramdisk.cpio" extract
         fi
         for fstab in $(find "$boot_folder/ramdisk_folder/" -name "$final_fstab_name"); do
-            my_print "- Патчинг $(basename $fstab)"
+            my_print "- $word36 $(basename $fstab)"
             if grep -q "/venodr/etc/init/hw" "$fstab" ; then
                 sed -i '/\/venodr\/etc\/init\/hw/d' "$fstab"
             fi
@@ -1295,32 +1294,32 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
             [[ -n "$(tail -n 1 "$fstab")" ]] && echo "" >>"$fstab"
             if $FLASH_IN_SUPER; then
                 if ! $A_ONLY_DEVICE; then
-                    my_print "- Добавление строки монтирования inject_neo для A/B устрйоства"
+                    my_print "- $word37"
                     echo "${NAME_INJECT_NEO}    /vendor/etc/init/hw ext4    ro,discard  slotselect,logical,first_stage_mount" >>$fstab
                 else
-                    my_print "- Добавление строки монтирования inject_neo для A-only устрйоства"
+                    my_print "- $word38"
                     echo "${NAME_INJECT_NEO}    /vendor/etc/init/hw ext4    ro,discard  logical,first_stage_mount" >>$fstab
                 fi
             elif $FLASH_IN_BOOT; then
-                my_print "- Добавление строки монтирования inject_neo для блока boot$UNCURRENT_SUFFIX"
+                my_print "- $word39 boot$UNCURRENT_SUFFIX"
                 echo "/dev/block/by-name/boot$UNCURRENT_SUFFIX    /vendor/etc/init/hw ext4    ro  first_stage_mount" >>$fstab
             elif $FLASH_IN_VENDOR_BOOT; then
-                my_print "- Добавление строки монтирования inject_neo для блока vendor_boot$UNCURRENT_SUFFIX"
+                my_print "- $word39 vendor_boot$UNCURRENT_SUFFIX"
                 echo "/dev/block/by-name/vendor_boot$UNCURRENT_SUFFIX    /vendor/etc/init/hw ext4    ro  first_stage_mount" >>$fstab
             fi
-            my_print "- Добавлние модифицированного $(basename $fstab) в $boot"
+            my_print "- $word40 $(basename $fstab) -> $boot"
             magiskboot cpio "$boot_folder/ramdisk.cpio" "add 777 ${fstab//$boot_folder\/ramdisk_folder\//} $fstab" &>>$LOGNEO
         done
         cd $boot_folder
         if [[ -n "$ramdisk_compress_format" ]] ; then
-            my_print "- Запаковка ramdisk обратно в $ramdisk_compress_format"
+            my_print "- $word41 $ramdisk_compress_format"
             magiskboot compress="${ramdisk_compress_format}" "$boot_folder/ramdisk.cpio" "$boot_folder/ramdisk.compress.cpio" &>>$LOGNEO
             rm -f "$boot_folder/ramdisk.cpio"
             mv "$boot_folder/ramdisk.compress.cpio" "$boot_folder/ramdisk.cpio"
         fi
-        my_print "- Запаковка $boot"
+        my_print "- $word42 $boot"
         magiskboot repack $boot_block &>>$LOGN
-        my_print "- Запись new-$boot в $boot_block"
+        my_print "- $word43 new-$boot -> $boot_block"
         cat $boot_folder/new-boot.img > $boot_block
         rm -rf "$TMPN/ramdisk_patch"
     done
@@ -1329,7 +1328,7 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
 
 check_dfe_neo_installing(){ # <--- Определение функции [Аругментов нет]
     if ! $force_start; then
-        my_print "- Поиск установленного DFE-NEO"
+        my_print "- $word44"
         export DETECT_NEO_IN_BOOT=false
         export DETECT_NEO_IN_SUPER=false
         export DETECT_NEO_IN_VENDOR_BOOT=false
@@ -1340,7 +1339,7 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
                 for boot_partition in "vendor_boot${UNCURRENT_SUFFIX}" "boot${UNCURRENT_SUFFIX}" ; do
                     echo "- Поиск neo_inject в ${boot_partition}${UNCURRENT_SUFFIX}" &>>$NEOLOG && {
                         if $(find_block_neo -c -b ${boot_partition}${UNCURRENT_SUFFIX}) ; then
-                            my_print "- Поиск neo_inject в ${boot_partition}${UNCURRENT_SUFFIX}"
+                            my_print "- $word45 ${boot_partition}${UNCURRENT_SUFFIX}"
                             if cat $(find_block_neo -b ${boot_partition}${UNCURRENT_SUFFIX}) | grep mount | grep /etc/init/hw/ &>>$LOGNEO ; then
                                 case "$boot_partition" in 
                                     vendor_boot*) 
@@ -1359,7 +1358,7 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
         }
         echo "- Поиск neo_inject в super если устройство имеет super" &>>$NEOLOG && {
             if "$SUPER_DEVICE" ; then
-                my_print "- Поиск neo_inject в super"
+                my_print "- $word46"
                 for neo_inject_name in neo_inject inject_neo ; do
                     if $A_ONLY_DEVICE ; then
                         if lptools_new --slot $CURRENT_SLOT --super $SUPER_BLOCK --get-info | grep "$neo_inject_name" &>>$LOGNEO ; then
@@ -1410,8 +1409,8 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
             rm -rf $path_check_boot
         done
         if $NEO_ALREADY_INSTALL ; then
-            my_print "- Обнаружен установленный DFE-NEO, удалить или установить снова?"
-            if ! volume_selector "Переустановить" "Удалить" ; then  
+            my_print "- $word47"
+            if ! volume_selector "$word155" "$word156" ; then  
                 remove_dfe_neo
                 exit 0
             fi
@@ -1515,11 +1514,11 @@ confirm_menu(){ # <--- Определение функции [Аругменто
     my_print " "
     my_print " "
     my_print " "
-    my_print "- Итог конфигурации:"
-    my_print "- Язык $languages"
+    my_print "- $word48:"
+    my_print "- $word49: $languages"
     if [[ "$where_to_inject" == "auto" ]] ; then
-        my_print "- Место для inject.img:"
-        my_print "- Прошивка образа будет по порядку в один из"
+        my_print "- $word50:"
+        my_print "- $word51"
         if $FLASH_IN_SUPER ; then
             if $A_ONLY_DEVICE ; then
                 my_print ">>>> super"
@@ -1543,49 +1542,49 @@ confirm_menu(){ # <--- Определение функции [Аругменто
         my_print ">>>> ${where_to_inject}${UNCURRENT_SUFFIX}" 
     fi
     
-    my_print "- Монтировать fstab в early_mount: $modify_early_mount"
+    my_print "- $word52: $modify_early_mount"
     my_print "- SafetyNetFix: $safety_net_fix"
-    my_print "- Скрыть не зашифрованность: $hide_not_encrypted"
+    my_print "- $word53: $hide_not_encrypted"
     if [[ -z "$zygisk_turn_on_parm" ]] ; then 
-        my_print "- zygisk on boot: $zygisk_turn_on"
+        my_print "- $word54: $zygisk_turn_on"
     else
-        my_print "- zygisk on boot: $zygisk_turn_on/$zygisk_turn_on_parm"
+        my_print "- $word54: $zygisk_turn_on/$zygisk_turn_on_parm"
     fi
     if [[ -z "$zygisk_turn_on_parm" ]] ; then 
-        my_print "- Custom denylist: $add_custom_deny_list"
+        my_print "- $word55: $add_custom_deny_list"
     else
-        my_print "- Custom denylist: $add_custom_deny_list/$add_custom_deny_list_parm"
+        my_print "- $word55: $add_custom_deny_list/$add_custom_deny_list_parm"
     fi   
     echo "- Проверка доступтности magisk" &>>$LOGNEO && {
         case $magisk in
             "EXT:"* | "ext:"* | "Ext:"*)
                 magisk="$(echo ${magisk} | sed "s/ext://I")"
                 if [[ -f "$(dirname "${ZIPARG3}")/${magisk}" ]]; then
-                    my_print "- Установка Magisk: $magisk"
+                    my_print "- $word56: $magisk"
                     MAGISK_ZIP="$(dirname "${ZIPARG3}")/${magisk}"
                 
                 else
-                    my_print "- Magisk: Не устанавливать"
+                    my_print "- $word57"
                     magisk=false
                 fi
                 ;;
             *)
                 if [[ -f "$TMPN/unzip/MAGISK/${magisk}.apk" ]]; then
                     MAGISK_ZIP="$TMPN/unzip/MAGISK/${magisk}.apk"
-                    my_print "- Установка Magisk: $magisk"
+                    my_print "-  $word56: $magisk"
                 elif [[ -f "$TMPN/unzip/MAGISK/${magisk}.zip" ]] ; then
                     MAGISK_ZIP="$TMPN/unzip/MAGISK/${magisk}.zip"
-                    my_print "- Установка Magisk: $magisk"
+                    my_print "-  $word56: $magisk"
                 else
-                    my_print "- Magisk: Не устанавливать"
+                    my_print "- $word57"
                     magisk=false
                 fi
                 ;;
         esac 
     } 
-    my_print "- Очистка данных: $wipe_data"
-    my_print "- Удалить данные блокировки: $remove_pin"
-    my_print "- Патерны патчинга fstab: $dfe_paterns"
+    my_print "- $word58: $wipe_data"
+    my_print "- $word59: $remove_pin"
+    my_print "- $word60: $dfe_paterns"
     if [[ -z "$custom_reset_prop" ]] ; then
         my_print "- custom_reset_prop: none"
     else
@@ -1594,8 +1593,8 @@ confirm_menu(){ # <--- Определение функции [Аругменто
     my_print " "
     my_print " "
     if ! $force_start ; then
-        my_print "- Продолжить установку с текущими параметрами?"
-        if ! volume_selector "Да" "Выход" ; then 
+        my_print "- $word61"
+        if ! volume_selector "$word157" "$word158" ; then 
             exit 1
         fi
     fi
@@ -1605,7 +1604,7 @@ confirm_menu(){ # <--- Определение функции [Аругменто
 
 add_custom_rc_line_to_inirc_and_add_files(){ # <--- Определение функции передается $1 файл куда сделать запись
     if $safety_net_fix || $hide_not_encrypted || $add_custom_deny_list || $zygisk_turn_on || [[ -n $custom_reset_prop ]] ; then
-        my_print "- Добавление необходимых файлов в inject_neo"
+        my_print "- $word62"
         if $add_custom_deny_list || $zygisk_turn_on ; then
             cp $TMPN/unzip/META-INF/tools/magisk.db "$TMPN/neo_inject$CURRENT_SUFFIX/" 
             my_print ">>>> magisk.db"
@@ -1623,7 +1622,7 @@ add_custom_rc_line_to_inirc_and_add_files(){ # <--- Определение фу�
         cp $TMPN/unzip/META-INF/tools/init.sh "$TMPN/neo_inject${CURRENT_SUFFIX}/"
         chmod 777 "$TMPN/neo_inject${CURRENT_SUFFIX}/init.sh"
         echo " " >> "$1"
-        my_print "- Добавление новых записей в $(basename $1)"
+        my_print "- $word63 $(basename $1)"
         my_print ">>>> on init"
         echo -e "${add_init_target_rc_line_init}\n" >> "$1"
         my_print ">>>> on early-fs"
@@ -1643,22 +1642,22 @@ move_fstab_from_original_vendor_and_patch(){ # <--- Определение фу�
     fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.vendor.device)} "
     fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.odm.device)}"
 
-    my_print "- Поиск нужного fstab"
+    my_print "- $word64"
     for original_fstab_name_for in $fstab_names_check ; do
         full_path_to_fstab_into_for="$full_path_to_vendor_folder$(dirname ${path_original_fstab})/$original_fstab_name_for"
         if [[ -f "$full_path_to_fstab_into_for" ]] && grep "/userdata" "$full_path_to_fstab_into_for" | grep "latemount" | grep -v "#" &>>$LOGNEO ; then
-            my_print "- Найден нужный fstab"
+            my_print "- $word65"
             my_print "*> $original_fstab_name_for"
-            my_print "- Копирование fstab в inject_neo"
+            my_print "- $word66"
             cp -afc "$full_path_to_fstab_into_for" "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab"
-            my_print "- Патчинг fstab в:"
+            my_print "- $word67:"
             my_print "*> neo_inject${CURRENT_SUFFIX}/$basename_fstab"
             patch_fstab_neo $dfe_paterns -f "$full_path_to_fstab_into_for" -o "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab"
             final_fstab_name="$original_fstab_name_for"
             return 0
             break
         fi
-        my_print ">> Проверка: $original_fstab_name_for"
+        my_print ">> $word68: $original_fstab_name_for"
     done
     return 1
     
@@ -1732,24 +1731,24 @@ patch_fstab_neo(){ # <--- Определение функции [-m, -r|-p, -f, 
                         remove_paterns=$(echo -e ${patterns//"--p--"/"\n"} | grep "\-\-r--")
                         replace_patterns=$(echo -e ${patterns//"--r--"/"\n"} | grep "\-\-p--")
                         if [ "$(echo "$line" | awk '{print $2}')" == "$mountpoint" ]; then
-                            my_print "- Обнаружена точка монтирования: '$mountpoint'"
+                            my_print "- $word69: '$mountpoint'"
                             for replace_pattern in ${replace_patterns//"--p--"/ } ; do
                                 if echo "$line" | grep -q "${replace_pattern%%"--to--"*}" ; then
-                                    my_print "- Замена выполнена ${replace_pattern%%"--to--"*}->${replace_pattern##*"--to--"}"
+                                    my_print "- $word70 ${replace_pattern%%"--to--"*}->${replace_pattern##*"--to--"}"
                                     line=$(echo "$line" | sed -E "s/,${replace_pattern%%"--to--"*}*[^[:space:]|,]*/,${replace_pattern##*"--to--"}/")
                                 fi
                                 if echo "$line" | grep -q "${replace_pattern%%"--to--"*}" && ! (echo "$line" | grep -q "${replace_pattern##*"--to--"}"); then 
-                                    my_print "- Замена выполнена ${replace_pattern%%"--to--"*}->${replace_pattern##*"--to--"}"
+                                    my_print "- $word70 ${replace_pattern%%"--to--"*}->${replace_pattern##*"--to--"}"
                                     line=$(echo "$line" | sed -E "s/${replace_pattern%%"--to--"*}*[^[:space:]|,]*/${replace_pattern##*"--to--"}/")
                                 fi 
                             done
                             for remove_pattern in ${remove_paterns//"--r--"/ }; do
                                 if echo "$line" | grep -q "${remove_pattern}" ; then 
-                                    my_print "- Флаг удален: ${remove_pattern}"
+                                    my_print "- $word71: ${remove_pattern}"
                                     line=$(echo "$line" | sed -E "s/,${remove_pattern}*[^[:space:]|,]*//")
                                 fi
                                 if echo "$line" | grep -q "${remove_pattern}" ; then 
-                                    my_print "- Флаг удален: ${remove_pattern}"
+                                    my_print "- $word71: ${remove_pattern}"
                                     line=$(echo "$line" | sed -E "s/${remove_pattern}*[^[:space:]|,]*//")
                                 fi
                             done
@@ -1822,16 +1821,16 @@ move_files_from_vendor_hw(){ # <--- Определение функции [Ар�
         done
         if [[ -z "$path_original_fstab" ]] || [[ -z "$basename_fstab" ]]; then
 
-            abort_neo -e 36.2 -m "Устройство не поддерживается"
+            abort_neo -e 36.2 -m "$word125"
         fi
         add_custom_rc_line_to_inirc_and_add_files "$last_init_rc_file_for_write"
         if ! move_fstab_from_original_vendor_and_patch ; then
             if ! [[ "$full_path_to_vendor_folder" == "/vendor" ]] ; then 
                 umount -fl "$full_path_to_vendor_folder"
             fi
-            abort_neo -e 36.1 -m "Ни один из fstab не найден в /vendor/etc/[${fstab_names_check// /\|}]"
+            abort_neo -e 36.1 -m "$word126 /vendor/etc/[${fstab_names_check// /\|}]"
         fi
-        [[ -f "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab" ]] || abort_neo -e 36.6 -m "В процессе патчинга что то пошло не так"
+        [[ -f "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab" ]] || abort_neo -e 36.6 -m "$word127"
 
     }
 
@@ -1855,25 +1854,25 @@ check_whare_to_inject(){ # <--- Определение функции [Аруг�
         if $SUPER_DEVICE ; then
             FLASH_IN_SUPER=true
         else
-            abort_neo -e 71.4 -m "Устройство не имеет super раздела, используйте другой параметр where_to_inject"
+            abort_neo -e 71.4 -m "$word128"
         fi
     elif [[ "$where_to_inject" == "boot" ]] ; then
         if ! $A_ONLY_DEVICE; then
             FLASH_IN_BOOT=true
             echo "- не A-only wahre to inject" &>>$LOGNEO
         else
-            abort_neo -e 71.3 -m "Устройство должно быть A-B. Используйте where_to_inject с другим параметром super или auto"
+            abort_neo -e 71.3 -m "$word129"
         fi
     elif [[ "$where_to_inject" == "vendor_boot" ]] ; then
         if $VENDOR_BOOT_DEVICE && ! $A_ONLY_DEVICE; then
             FLASH_IN_VENDOR_BOOT=true
             echo "- Vendor_boot и не A-only wahre to inject" &>>$LOGNEO
         else
-            abort_neo -e 71.2 -m "Устройство не имеет vendor_boot блока или устройство A-only. Используйте where_to_inject с другим параметром"
+            abort_neo -e 71.2 -m "$word130"
         fi
     fi
     if ! $FLASH_IN_BOOT && ! $FLASH_IN_VENDOR_BOOT && ! $FLASH_IN_SUPER ; then
-        abort_neo -e 71.5 -m "Устройство вообще не поддерживается"
+        abort_neo -e 71.5 -m "$word131"
     fi
 
 }; export -f check_whare_to_inject
@@ -1975,12 +1974,12 @@ check_size_super(){ # <--- Определение функции $1 размер
             continue
         fi
         if (( $FREE_SIZE_INTO_SUPER >= $size_print * 1024 * 1024 )) ; then
-            my_print "- В super достаточно места для записи neo_inject.img"
+            my_print "- $word72"
             return 0
             break
         else
-            my_print "- В super не достаточно места для записи neo_inject.img"
-            my_print "- Нужно ${size_print}mb"
+            my_print "- $word73"
+            my_print "- $word74 ${size_print}mb"
             return 1
         fi
     done
@@ -1989,7 +1988,7 @@ check_size_super(){ # <--- Определение функции $1 размер
 
 test_mount_neo_inject(){ # <--- Определение функции $1 путь к блоку neo_inject
     local PATH_BLOCK_NEO="$1"
-    my_print "- Проверка монтирования neo_inject с нового места"
+    my_print "- $word75"
     mkdir -pv "$TMPN/test_neo_inject_img_mount" &>>$LOGN
     if mount -r "$PATH_BLOCK_NEO" "$TMPN/test_neo_inject_img_mount" ; then
         umount "$TMPN/test_neo_inject_img_mount"
@@ -2030,7 +2029,7 @@ flash_inject_neo_to_super(){ # <--- Определение функции [Ар�
     fi
     FREE_SIZE_INTO_SUPER="$(lptools_new --super "$SUPER_BLOCK" --free | grep "Free space" | awk '{print $3}')"
     if ! check_size_super "$SIZE_NEO_IMG" ; then
-        my_print "- Попытка сжать neo_inject.img"
+        my_print "- $word76"
         resize2fs -M "$NEO_IMG" &>>$LOGN
         resize2fs -M "$NEO_IMG" &>>$LOGN
         resize2fs -M "$NEO_IMG" &>>$LOGN
@@ -2040,7 +2039,7 @@ flash_inject_neo_to_super(){ # <--- Определение функции [Ар�
         fi
     fi
     if lptools_new --super $SUPER_BLOCK $LPTOOLS_SLOT_SUFFIX --create "${NAME_INJECT_NEO}${CURRENT_SUFFIX}" "$SIZE_NEO_IMG" &>>$LOGNEO; then
-        my_print "- Разметка neo_inject с размером $(awk 'BEGIN{printf "%.1f\n", '$SIZE_NEO_IMG'/1024/1024}')MB"
+        my_print "- $word77 $(awk 'BEGIN{printf "%.1f\n", '$SIZE_NEO_IMG'/1024/1024}')MB"
         if find_block_neo -c -b "${NAME_INJECT_NEO}${CURRENT_SUFFIX}"; then
             cat "$NEO_IMG" >"$(find_block_neo -b "${NAME_INJECT_NEO}${CURRENT_SUFFIX}")"
             if test_mount_neo_inject "$(find_block_neo -b "${NAME_INJECT_NEO}${CURRENT_SUFFIX}")" &>>$LOGN ; then
@@ -2048,15 +2047,15 @@ flash_inject_neo_to_super(){ # <--- Определение функции [Ар�
                 FLASH_IN_BOOT=false
                 FLASH_IN_VENDOR_BOOT=false
             else
-                my_print "- Не удалось смонтировать созданный раздел"
+                my_print "- $word78"
                 return 1
             fi
         else
-            my_print "- Не удалость найти созданный раздел"
+            my_print "- $word79"
             return 1
         fi
     else
-        my_print "- Не удалость создать раздел"
+        my_print "- $word80"
         return 1
     fi
     return 0
@@ -2101,7 +2100,7 @@ check_first_stage_fstab(){ # <--- Определение функции [Ару�
 
 default_post_install(){
     if $disable_verity_and_verification ; then 
-        my_print "- Отключение проверки целостности системы"
+        my_print "- $word81"
         ALRADY_DISABLE=true
         avbctl --force disable-verification
         avbctl --force disable-verity
@@ -2109,17 +2108,17 @@ default_post_install(){
     mountpoint -q /data || mount /data &>>$LOGNEO
     mountpoint -q /data && {
         if $remove_pin; then
-            my_print "- Удаление записи о наличии экрана блокировки"
+            my_print "- $word82"
             rm -f /data/system/locksettings*
         fi
         if $wipe_data; then
-            my_print "- Очистка раздела /data, за исключением /data/media"
+            my_print "- $word83"
             find /data -maxdepth 1 -mindepth 1 -not -name "media" -exec rm -rf {} \;
         fi
     }
     if ! [[ "$magisk" == false ]]; then
         my_print " "
-        my_print "- Установка Magisk:"
+        my_print "- $word56:"
         my_print " "
         my_print " "
         [[ -z "$MAGISK_ZIP" ]] && {
@@ -2149,7 +2148,7 @@ flash_inject_neo_to_vendor_boot(){
     local boot="$1"
     cat "$NEO_IMG" > "$(find_block_neo -b "${boot}${UNCURRENT_SUFFIX}")"
     if test_mount_neo_inject "$(find_block_neo -b "${boot}${UNCURRENT_SUFFIX}")" ; then
-        my_print "- Успех записи neo_inject в ${boot}${UNCURRENT_SUFFIX}"
+        my_print "- $word84 ${boot}${UNCURRENT_SUFFIX}"
         return 0
     else
         return 1
@@ -2157,6 +2156,11 @@ flash_inject_neo_to_vendor_boot(){
 }; export -f flash_inject_neo_to_vendor_boot
 
 echo "- Определение языка" &>>$LOGNEO && { # <--- обычный код
+    # lng.sh аргументы    \/--------------------\/
+    for number in {1..250} ; do 
+        export word${number}=""
+    done
+    # lng.sh аргументы    /\--------------------/\
     if echo "$(basename "$ZIPARG3")" | busybox grep -qi "extconfig"; then
         if [[ -f "$(dirname "$ZIPARG3")/NEO.config" ]]; then
                 languages="$(grep "languages=" "$(dirname "$ZIPARG3")/NEO.config")"
@@ -2195,7 +2199,7 @@ echo "- Определние переменых для volume_selector" &>>$LOGN
 }
 
 echo "- Определение стандартных переменных" &>>$LOGNEO && { # <--- обычный код
-    my_print "- Определение стандартных переменных"
+    my_print "- $word85"
     # NEO.config аргументы \/--------------------\/
     export languages=""
     export force_start=""
@@ -2213,11 +2217,6 @@ echo "- Определение стандартных переменных" &>>$
     export where_to_inject=""
     export magisk=""
     # NEO.config аргументы /\--------------------/\
-    # lng.sh аргументы    \/--------------------\/
-    for number in {1..250} ; do 
-        export word${number}=""
-    done
-    # lng.sh аргументы    /\--------------------/\
     # info аргументы      \/--------------------\/\
     export BOOT_PATCH=""
     export SUPER_THIS=""
@@ -2245,31 +2244,33 @@ echo "- Определение стандартных переменных" &>>$
 
 echo "- Вывод базовой информации" &>>$LOGNEO && { # <--- обычный код
     # Версия программы
+    my_print ""
     my_print "- $NEO_VERSION"
-    my_print "- Скрипт запущен из $WHERE_INSTALLING"
-    my_print "- Чтение конфигурации"
+    my_print "- $word86 $WHERE_INSTALLING"
+    my_print "- $word87"
+    my_print ""
 }
 
 echo "- Чтение конфига и проверка его досутптности" &>>$LOGNEO && { # <--- обычный код
     export CONFIG_FILE=""
 
     if echo "$(basename "$ZIPARG3")" | grep -qi "extconfig"; then
-        my_print "- В название архива присутсвует extconfig. Будет попытка считать конфиг из той же папки где распаложен установочный архив"
+        my_print "- $word88"
         if [[ -f "$(dirname "$ZIPARG3")/NEO.config" ]]; then
             CONFIG_FILE="$(dirname "$ZIPARG3")/NEO.config"
         else 
-            my_print "- Внешний конфиг не найден. Будет произведено чтение из встроенного"
+            my_print "- $word89"
         fi
     fi
     if [[ -z "$CONFIG_FILE" ]] && [[ -f "$TMPN/unzip/NEO.config" ]] ; then
         CONFIG_FILE="$TMPN/unzip/NEO.config"
     else
-        my_print "- Встроенный конфиг не обнаружен"
-        my_print "- Выход..."
-        abort_neo -e "8.0" -m "Не найден встроенный конфиг"
+        my_print "- $word90"
+        my_print "- $word91..."
+        abort_neo -e "8.0" -m "$word93"
     fi
-    my_print "- Конфиг обнаружен"
-    my_print "- Проверка аргументов на соответсвие"
+    my_print "- $word93"
+    my_print "- $word94"
 
     PROBLEM_CONFIG=""
     true_false_ask="disable_verity_and_verification "
@@ -2300,14 +2301,14 @@ echo "- Чтение конфига и проверка его досутптн�
         PROBLEM_CONFIG+="$(grep "force_start=" "$CONFIG_FILE" | grep -v "#") "
     fi
     if [[ -n "$PROBLEM_CONFIG" ]] ; then
-        my_print "- Обнаружены проблемы:"
+        my_print "- $word95:"
         for text in $PROBLEM_CONFIG ; do 
             my_print "   $text"
         done
-        abort_neo -e 2.8 -m "Проблема с конифгом"
+        abort_neo -e 2.8 -m "$word132"
     fi
     source "$CONFIG_FILE" || abort_neo -e "8.2" -m "Не удалось считать файл конфигурации"
-    my_print "- Все впорядке!"  
+    my_print "- $word96"  
 }
 
 echo "- Проверка доступтности bootctl & snapshotctl" &>>$LOGNEO && { # <--- обычный код
@@ -2326,30 +2327,30 @@ echo "- Проверка доступтности bootctl & snapshotctl" &>>$LOG
 }
 
 echo "- Чтение пропов и определние слота" &>>$LOGNEO && { # <--- обычный код
-    my_print "- Чтение пропов и определние переменных"
+    my_print "- $word97"
     get_current_suffix --current
 
     
 
     if [[ -n "$CURRENT_SUFFIX" ]] ; then
         my_print " "
-        my_print "- Устройства A/B"
-        my_print "- Текущий слот: $OUT_MESSAGE_SUFFIX"
+        my_print "- $word98"
+        my_print "- $word99: $OUT_MESSAGE_SUFFIX"
         export A_ONLY_DEVICE=false
     else
-        my_print "- Устройство A-only"
+        my_print "- $word100"
         export A_ONLY_DEVICE=true
     fi
 }
 
 echo "- Поиск раздела super" &>>$LOGNEO && { # <--- обычный код
-    my_print "- Проверка на наличие super раздела"
+    my_print "- $word101"
     SUPER_BLOCK=$(find_super_partition)
     if [[ -z "$SUPER_BLOCK" ]] ; then
-        my_print "- Раздел super не найден"
+        my_print "- $word102"
         SUPER_DEVICE=false
     else
-        my_print "- Раздел super найден по пути:"
+        my_print "- $word103:"
         my_print ">>> $SUPER_BLOCK"
         SUPER_DEVICE=true
     fi
@@ -2357,28 +2358,28 @@ echo "- Поиск раздела super" &>>$LOGNEO && { # <--- обычный �
 
 echo "- Проверка устройства на поддердку если нет super и a_only устройство" &>>$LOGNEO && { # <--- обычный код
     if ! $SUPER_DEVICE && $A_ONLY_DEVICE ; then
-        abort_neo -e "9.1" -m "Текущая версия DFE-NEO не поддерживает A-only и устройства без super раздела одновременно"
+        abort_neo -e "9.1" -m "$word133"
     fi
 }
 
 echo "- Поиск базовых блоков recovery|boot|vendor_boot и проверка для whare_to_inject" &>>$LOGNEO && { # <--- обычный код
-    my_print "- Поиск recovery раздела"
+    my_print "- $word104"
     if find_block_neo -c -b "recovery" "recovery_a" "recovery_b" ; then
-        my_print "- Recovery раздел найден. Будет легко"
+        my_print "- $word105"
         RECOVERY_DEVICE=true
     else
-        my_print "- Recovery раздел не найден, будет сложнее"
+        my_print "- $word106"
         RECOVERY_DEVICE=false
     fi
-    my_print "- Поиск vendor_boot раздела"
+    my_print "- $word107"
     if find_block_neo -c -b "vendor_boot" "vendor_boot_a" "vendor_boot_b" ; then
-        my_print "- Vendor_boot раздел найден. Будет легко"
+        my_print "- $word108"
         VENDOR_BOOT_DEVICE=true
     else
         if ! $RECOVERY_DEVICE ; then 
-            my_print "- Vendor_boot раздел не найден, будет еще сложнее"
+            my_print "- $word109"
         else
-            my_print "- Vendor_boot раздел не найден, будет сложнее"
+            my_print "- $word110"
         fi
         VENDOR_BOOT_DEVICE=false
     fi
@@ -2390,16 +2391,16 @@ echo "- Проверка запущенной системы и OTA статус
     if $SYS_STATUS ; then
         if ! $SNAPSHOTCTL_STATE ; then
             if ! $force_start ; then 
-                my_print "- !! Ошибка в определение статуса обновления системы, бинарник не может быть выполнен"
-                my_print "- Требуется уточнение пользователя, установка в текущую прошивку?"
-                if volume_selector "Текущая система" "Выход" ; then
+                my_print "- !! $word111"
+                my_print "- $word112"
+                if volume_selector "$word159" "$word160" ; then
                     echo "- продолжить установку" &>>$NEOLOG
                     get_current_suffix --current
                 else
                     exit 82
                 fi
             else
-                abort_neo -e "81.1" -m "Ошибка в проверке статуса обновления системы, с функцией force_start=true продолжить нельзя" 
+                abort_neo -e "81.1" -m "$word134" 
             fi
         fi
         if $SNAPSHOTCTL_STATE ; then
@@ -2408,18 +2409,18 @@ echo "- Проверка запущенной системы и OTA статус
                 echo "- Установка в текущую прошивку, обновления системы не обнаружено" &>>$NEOLOG
                 get_current_suffix --current
             elif [[ "$SNAPSHOT_STATUS" == "initiated" ]] ; then
-                abort_neo -e "83.1" -m "Прошивка в состояние обновления, дождитесь установки обновления!"
+                abort_neo -e "83.1" -m "$word135"
             elif [[ "$SNAPSHOT_STATUS" == "unverified" ]] ; then
-                my_print "- Обнаружено завершение установки обновления, утсановка DFE-NEO будет произведена в новую прошивку"
+                my_print "- $word113"
                 if ! $force_start ; then
-                    my_print "- Но прежде чем начать мне нужно, что обновление установлено полностью, првоерить это я пока не могу"
-                    if ! volume_selector "Установлена полностью" "Еще не установлена" ; then
-                        abort_neo -e "83.2" -m "Дождитесь полной установки прошивки прежде чем запускать скрипт"
+                    my_print "- $word114"
+                    if ! volume_selector "$word161" "$word162" ; then
+                        abort_neo -e "83.2" -m "$word136"
                     fi
                 fi
                 get_current_suffix --uncurrent
             else
-                abort_neo -e "83.4" -m "Неизветсный статус обновления системы"
+                abort_neo -e "83.4" -m "$word137"
             fi
         fi
     fi
@@ -2428,7 +2429,7 @@ flash_inject_neo(){
     if $FLASH_IN_SUPER ; then
         if ! flash_inject_neo_to_super ; then
             if $A_ONLY_DEVICE ; then
-                abort_neo -e 182.2 -m "Не удалось записать образ в super, для A-only это критично. Выход"
+                abort_neo -e 182.2 -m "$word138"
             else
                 FLASH_IN_SUPER=false
             fi
@@ -2446,14 +2447,14 @@ flash_inject_neo(){
     fi
     if $FLASH_IN_BOOT ; then
         if ! flash_inject_neo_to_vendor_boot boot ; then
-            abort_neo -e 192.1 -m "Не удалось записать inject_neo никуда"
+            abort_neo -e 192.1 -m "$word139"
         fi
     fi
 }
 default_functions_for_install(){
     if $SUPER_DEVICE && ! $SYS_STATUS ; then
         update_partitions
-        my_print "- Установка в слот: $OUT_MESSAGE_SUFFIX"
+        my_print "- $word115: $OUT_MESSAGE_SUFFIX"
     fi
     if $SYS_STATUS && mountpoint -q /vendor/etc/init/hw ; then
         umount -fl /vendor/etc/init/hw
@@ -2468,10 +2469,10 @@ default_functions_for_install(){
         if ! [[ "$full_path_to_vendor_folder" == "/vendor" ]] ; then 
             umount -fl "$full_path_to_vendor_folder"
         fi
-        abort_neo -e 182.5 -m "Не удалось натйи $final_fstab_name в ramdisk boot/vendor_boot"
+        abort_neo -e 182.5 -m "$word140 $final_fstab_name"
     fi
     make_neo_inject_img "$TMPN/neo_inject$CURRENT_SUFFIX" "neo_inject" "${VENDOR_FOLDER}/etc/init/hw" "${VENDOR_FOLDER}/etc" || {
-        abort_neo -e 36.8 -m "Не удалось создать раздел neo_inject.img"
+        abort_neo -e 36.8 -m "$word141"
     }
 }
 
@@ -2482,11 +2483,15 @@ echo "- Старт установки" &>>$LOGNEO && {
     default_post_install
     my_print " "
     my_print " "
-    my_print "<-----Завершено----->"
+    my_print "<-----$word116----->"
     my_print " "
     my_print " "
     my_print " "
-    my_print "Отформатируйте раздел userdata если вы используйте DFE впервые и ваша /data зашифрована"
+    my_print "$word117"
+    my_print " "
+    my_print " "
+    my_print " "
+    my_print " "
     my_print " "
     my_print " "
     exit 0
