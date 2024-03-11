@@ -704,9 +704,9 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
             if ! $A_ONLY_DEVICE ; then 
                 for boot_partition in "vendor_boot${UNCURRENT_SUFFIX}" "boot${UNCURRENT_SUFFIX}" ; do
                     echo "- Поиск neo_inject в ${boot_partition}${UNCURRENT_SUFFIX}" &>>$NEOLOG && {
-                        if $(find_block_neo -c -b ${boot_partition}${UNCURRENT_SUFFIX}) ; then
-                            my_print "- $word45 ${boot_partition}${UNCURRENT_SUFFIX}"
-                            if cat $(find_block_neo -b ${boot_partition}${UNCURRENT_SUFFIX}) | grep mount | grep /etc/init/hw/ &>>$LOGNEO ; then
+                        if $(find_block_neo -c -b ${boot_partition}) ; then
+                            my_print "- $word45 ${boot_partition}"
+                            if cat $(find_block_neo -b ${boot_partition}) | grep mount | grep /etc/init/hw/ &>>$LOGNEO ; then
                                 case "$boot_partition" in 
                                     vendor_boot*) 
                                         export DETECT_NEO_IN_VENDOR_BOOT=true 
@@ -1449,7 +1449,7 @@ check_first_stage_fstab(){ # <--- Определение функции [Ару�
                 if magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract &>>$LOGN ; then
                     for fstab in $(find "$boot_check_folder/ramdisk_folder/" -name "$final_fstab_name"); do
                         if grep -w "/system" $fstab | grep -q "first_stage_mount"; then
-                            BOOT_PATCH+="$boot$CURRENT_SUFFIX "
+                            BOOT_PATCH+="$boot "
                         fi
                     done
                 fi
