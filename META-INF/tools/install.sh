@@ -675,6 +675,7 @@ my_print(){ # <--- Определение функции [Аругменты $1 
             while read -r line_print; do
                 echo -e "$line_print" &>>$LOGNEO
                 echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
+                sleep 0.05
             done <<<"$input_message_ui"
         ;;
     esac
@@ -777,12 +778,9 @@ get_current_suffix(){ # <--- Определение функции [--current] [
             CSUFFIX_tmp=$(grep_cmdline androidboot.slot)
         fi
     fi
-    if [[ -n "$CSUFFIX_tmp" ]] ; then
-        echo "$get_current_suffix"
-    fi
     case "$CSUFFIX_tmp" in
         "$A_CASE") CURRENT_SUFFIX="_a" ; UNCURRENT_SUFFIX="_b" ; CURRENT_SLOT=0 ; UNCURRENT_SLOT=1 ; OUT_MESSAGE_SUFFIX="$CURRENT_SUFFIX" ;;
-        "$B_CASE") CURRENT_SUFFIX="_b" ;  UNCURRENT_SUFFIX="_b" ; CURRENT_SLOT=1 ; UNCURRENT_SLOT=0 ; OUT_MESSAGE_SUFFIX="$CURRENT_SUFFIX" ;;
+        "$B_CASE") CURRENT_SUFFIX="_b" ;  UNCURRENT_SUFFIX="_a" ; CURRENT_SLOT=1 ; UNCURRENT_SLOT=0 ; OUT_MESSAGE_SUFFIX="$CURRENT_SUFFIX" ;;
     esac
 
 }; export -f get_current_suffix
@@ -899,27 +897,40 @@ update_partitions(){ # <--- Определение функции [Аругме�
                 system_check_state=false
                 vendor_check_state=false
                 for partitions in vendor system ; do
-                    continue_fail=false
-                    if lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --map "system$check_suffix" &>>$NEOLOG ; then
-                        mkdir -pv "$TMPN/check_partitions/system$check_suffix" &>>$NEOLO
-                        if ! mount -r "/dev/block/mapper/system$check_suffix" "$TMPN/check_partitions/system$check_suffix" ; then
-                            if ! mount -r "/dev/block/mapper/system$check_suffix" "$TMPN/check_partitions/system$check_suffix" ; then
-                                if ! mount -r "/dev/block/mapper/system$check_suffix" "$TMPN/check_partitions/system$check_suffix" ; then
-                                    continue_fail=true
+                    continue_fail=true
+                    if lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --map "${partitions}$check_suffix" &>>$NEOLOG ; then
+                        
+                        mkdir -pv "$TMPN/check_partitions/${partitions}$check_suffix" &>>$NEOLOG
+                        if ! mount -r "/dev/block/mapper/${partitions}$check_suffix" "$TMPN/check_partitions/${partitions}$check_suffix" &>>$NEOLOG ; then
+                           
+                            if ! mount -r "/dev/block/mapper/${partitions}$check_suffix" "$TMPN/check_partitions/${partitions}$check_suffix" &>>$NEOLOG ; then
+                                
+                                if ! mount -r "/dev/block/mapper/${partitions}$check_suffix" "$TMPN/check_partitions/${partitions}$check_suffix" &>>$NEOLOG ; then
+                                    
+                                    continue_fail=false
                                 fi
                             fi
                         fi
-                        if ! $continue_fail && mountpoint "$TMPN/check_partitions/system$check_suffix" &>>$LOGNEO ; then export ${partitions}_check_state=true ; fi
-                        umount -fl "$TMPN/check_partitions/system$check_suffix" &>>$NEOLOG
-                        lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --unmap "system$check_suffix" &>>$NEOLOG
-                        rm -rf "$TMPN/check_partitions/system$check_suffix"
+                        if $continue_fail && mountpoint "$TMPN/check_partitions/${partitions}$check_suffix" &>>$LOGNEO ; then 
+                            if [[ "$partitions" == "vendor" ]] ; then
+                                vendor_check_state=true
+                            else
+                                system_check_state=true
+                            fi
+                        fi
+                        umount -fl "$TMPN/check_partitions/${partitions}$check_suffix" &>>$NEOLOG
+                        lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --unmap "${partitions}$check_suffix" &>>$NEOLOG
+                        rm -rf "$TMPN/check_partitions/${partitions}$check_suffix"
+                        sleep 0.2
                     fi
                 done
+                
                 if $system_check_state && $vendor_check_state ; then
                     good_slot_suffix+="${check_suffix}${check_slot}"
                 fi
             done
         done 
+        
         case "$good_slot_suffix" in
             "_a0_a1"|"_a0") 
                 FINAL_ACTIVE_SLOT=0
@@ -933,7 +944,7 @@ update_partitions(){ # <--- Определение функции [Аругме�
                 if grep -q "source_slot: A" /tmp/recovery.log && grep -q "target_slot: B" /tmp/recovery.log ; then
                     FINAL_ACTIVE_SLOT=1
                     FINAL_ACTIVE_SUFFIX=_b
-                elif grep -q "target_slot: B" /tmp/recovery.log && grep -q "source_slot: A" /tmp/recovery.log ; then
+                elif grep -q "source_slot: B" /tmp/recovery.log && grep -q "target_slot: A" /tmp/recovery.log ; then
                     FINAL_ACTIVE_SLOT=0
                     FINAL_ACTIVE_SUFFIX=_a
                 else
@@ -1217,7 +1228,14 @@ remove_dfe_neo(){ # <--- Определение функции [Аругмент
                 magiskboot decompress $path_check_boot/ramdisk.cpio $path_check_boot/d.cpio &>$path_check_boot/log.decompress
                 rm -f $path_check_boot/ramdisk.cpio 
                 mv $path_check_boot/d.cpio $path_check_boot/ramdisk.cpio
-                ramdisk_compress_format=$(grep "Detected format:" $path_check_boot/log.decompress.ramdisk | sed 's/.*\[\(.*\)\].*/\1/')
+                ramdisk_compress_format=$(grep "Detected format:" $path_check_boot/log.decompress | sed 's/.*\[\(.*\)\].*/\1/')
+            fi
+            if [[ -n "$ramdisk_compress_format" ]] ; then
+                if ! magiskboot cpio $path_check_boot/ramdisk.cpio extract &>>$LOGNEO ; then
+                    cd "$TMPN"
+                    rm -rf $path_check_boot
+                    continue
+                fi
             fi
             need_repack=false
             for fstab in $(find $path_check_boot/ramdisk_files/ -name "fstab.*" ) ; do
@@ -1261,6 +1279,7 @@ remove_dfe_neo(){ # <--- Определение функции [Аругмент
 
 ramdisk_first_stage_patch(){ # <--- Определение функции $1 передаються именя boot которые надо пропатчить
     for boot in $1 ; do
+        ramdisk_compress_format=""
         my_print "- Патчинг first_stage $boot"
         boot_folder="$TMPN/ramdisk_patch/$boot"
         mkdir -pv "$TMPN/ramdisk_patch/$boot/ramdisk_folder" &>>$LOGN
@@ -1274,11 +1293,13 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
             my_print "- $word35"
             magiskboot decompress "$boot_folder/ramdisk.cpio" "$boot_folder/ramdisk.d.cpio" &>$boot_folder/log.decompress
             rm -f "$boot_folder/ramdisk.cpio"
-            mv "$boot_folder/ramdisk.d.cpio" "$boot_check_folder/ramdisk.cpio"
-            ramdisk_compress_format=$(grep "Detected format:" $boot_folder/log.decompress.ramdisk | sed 's/.*\[\(.*\)\].*/\1/')
+            mv "$boot_folder/ramdisk.d.cpio" "$boot_folder/ramdisk.cpio"
+            ramdisk_compress_format=$(grep "Detected format:" $boot_folder/log.decompress | sed 's/.*\[\(.*\)\].*/\1/')
         fi
         if [[ -n "$ramdisk_compress_format" ]] ; then
-            magiskboot cpio "$boot_folder/ramdisk.cpio" extract
+            if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract ; then
+                exit 152
+            fi
         fi
         for fstab in $(find "$boot_folder/ramdisk_folder/" -name "$final_fstab_name"); do
             my_print "- $word36 $(basename $fstab)"
@@ -1337,10 +1358,11 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
         echo "- Поиск neo_inject в boot/vendor_boot только для a/b устройств" &>>$NEOLOG && {
             if ! $A_ONLY_DEVICE ; then 
                 for boot_partition in "vendor_boot${UNCURRENT_SUFFIX}" "boot${UNCURRENT_SUFFIX}" ; do
-                    echo "- Поиск neo_inject в ${boot_partition}${UNCURRENT_SUFFIX}" &>>$NEOLOG && {
+                    echo "- Поиск neo_inject в ${boot_partition}" &>>$NEOLOG && {
                         if $(find_block_neo -c -b ${boot_partition}) ; then
                             my_print "- $word45 ${boot_partition}"
-                            if cat $(find_block_neo -b ${boot_partition}) | grep mount | grep /etc/init/hw/ &>>$LOGNEO ; then
+                            mkdir -pv $TMPN/mnt_boot_vendor $>$LOGN
+                            if mount -r $(find_block_neo -b ${boot_partition}) $TMPN/mnt_boot_vendor &>>$LOGNEO ; then
                                 case "$boot_partition" in 
                                     vendor_boot*) 
                                         export DETECT_NEO_IN_VENDOR_BOOT=true 
@@ -1389,10 +1411,15 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
                         if magiskboot decompress $path_check_boot/ramdisk.cpio $path_check_boot/d.cpio &>>$LOGNEO ; then
                             rm -f $path_check_boot/ramdisk.cpio &>>$LOGNEO
                             mv $path_check_boot/d.cpio $path_check_boot/ramdisk.cpio
+                            if ! magiskboot cpio $path_check_boot/ramdisk.cpio extract ; then
+                                cd "$TMPN"
+                                rm -rf $path_check_boot
+                                continue
+                            fi
                         else
-                            continue
                             cd "$TMPN"
                             rm -rf $path_check_boot
+                            continue
                         fi
                     fi
                     for fstab in $(find $path_check_boot/ramdisk_files -name "fstab.*" ) ; do
@@ -2284,19 +2311,19 @@ echo "- Чтение конфига и проверка его досутптн�
 
     for what in $true_false_ask ; do 
         if check_it "$what" "ask" || check_it "$what" "true" || check_it "$what" "false" ; then
-            echo "$what fine" &> $LOGNEO
+            echo "$what fine" &>>$LOGNEO
         else
             PROBLEM_CONFIG+="$(grep "${what}=" "$CONFIG_FILE" | grep -v "#") "
         fi
     done
     if check_it "where_to_inject" "super" || check_it "where_to_inject" "auto" || check_it "where_to_inject" "vendor_boot" || check_it "where_to_inject" "boot" ; then
-        echo "where_to_inject fine" &> $LOGNEO
+        echo "where_to_inject fine" &>>$LOGNEO
     else
         PROBLEM_CONFIG+="$(grep "where_to_inject=" "$CONFIG_FILE" | grep -v "#") "
     fi
 
     if check_it "force_start" "true" || check_it "force_start" "false" ; then
-        echo "force_start fine" &> $LOGNEO
+        echo "force_start fine" &>>$LOGNEO
     else
         PROBLEM_CONFIG+="$(grep "force_start=" "$CONFIG_FILE" | grep -v "#") "
     fi
