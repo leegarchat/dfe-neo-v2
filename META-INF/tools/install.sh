@@ -224,7 +224,7 @@ volume_selector(){ # <--- Определение функции  [Аругмен
                 return 0
             elif (grep -q 'KEY_VOLUMEDOWN *DOWN' $volume_selector_events_file); then
                 rm -rf $volume_selector_events_file
-                my_print "**> $2  [Громкость вниз (-)]"
+                my_print "**> $2 [Громкость вниз (-)]"
                 return 1
             fi
             [ $volume_selector_count -gt 300 ] && break
@@ -530,7 +530,7 @@ mount_vendor(){ # <--- Определение функции [Аругменто
         umount -fl "$(readlink "$VENDOR_BLOCK")" &>>$LOGNEO
     fi 
 
-    name_vendor_block="vendor${CSLOT}"
+    name_vendor_block="vendor${CURRENT_SUFFIX}" 
     full_path_to_vendor_folder=$TMPN/mapper/$name_vendor_block
 
     mkdir -pv $full_path_to_vendor_folder
@@ -1038,7 +1038,7 @@ patch_fstab_neo(){ # <--- Определение функции [-m, -r|-p, -f, 
             ;;
         esac
     done
-
+    echo -n "" > "$output_fstab"
     while IFS= read -r line; do
         if $removeoverlay; then
             case $line in
