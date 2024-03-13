@@ -1,5 +1,5 @@
-word1="[Increase volume (+)]"
-word2="[Decrease volume (-)]"
+word1="[Volume(+)]"
+word2="[Volume(-)]"
 word3="Deleting markup"
 word4="Updating sections"
 word5="The script could not determine the boot slot. Choose the boot slot manually."

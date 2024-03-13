@@ -1,5 +1,5 @@
-word1="[Meningkatkan volume (+)]"
-word2="[Mengurangi volume (-)]"
+word1="[Volume(+)]"
+word2="[Volume(-)]"
 word3="Menghapus markup"
 word4="Memperbarui bagian"
 word5="Skrip tidak dapat menentukan slot boot. Pilih slot boot secara manual."
