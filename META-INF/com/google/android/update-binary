@@ -172,7 +172,8 @@ else
   export TOOLS=$TMP_TOOLS/binary/$ARCH
   export LD_LIBRARY_PATH=$TMP_TOOLS/binary/$ARCH:$LD_LIBRARY_PATH
   [[ -f "$TMP_TOOLS/install.sh" ]] || abort_neo -e "20.8" -m "For some reason, the installation .sh file is missing"
-  $TMP_TOOLS/binary/$ARCH/bash $TMP_TOOLS/install.sh || exit $?
+  $TMP_TOOLS/binary/$ARCH/bash $TMP_TOOLS/install.sh 
+  ERROR_CODE=$?
 fi
 
-exit 0
+exit $ERROR_CODE

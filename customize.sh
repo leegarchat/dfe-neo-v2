@@ -14,6 +14,6 @@ cd $MODPATH
 $unzipbin "$ZIPFILE" &> /dev/null
 chmod 777 $MODPATH/META-INF/com/google/android/update-binary
 sh $MODPATH/META-INF/com/google/android/update-binary 1 2 "$ZIPFILE" "ksuinstaller"
-    
+EXIT_CODE=$?
 rm -rf $MODPATH &> /dev/null
-exit 0
+exit $EXIT_CODE
