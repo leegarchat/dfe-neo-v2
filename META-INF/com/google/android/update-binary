@@ -2,6 +2,7 @@
 
 export ZIPARG1="$1" 
 export ZIPARG2="$2" 
+<<<<<<< HEAD
 export ZIPARG3="$3" 
 <<<<<<< HEAD
 >>>>>>> 915b19b (first test kernelsuapp/magiskapp 2.5.x)
@@ -10,6 +11,9 @@ export ZIPARG3="$3"
 >>>>>>> 915b19b (first test kernelsuapp/magiskapp 2.5.x)
 =======
 >>>>>>> 49c4a5d (fist_stable start on kernelsu)
+=======
+export ZIPARG3="$3" 
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
 
 
 if [[ -z "$(getprop sys.boot_completed)" ]] && [[ -z "$(getprop dev.bootcomplete)" ]] ; then 

@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 #!/bin/bash
 
 export TOOLS=$TMP_TOOLS/binary/$ARCH
@@ -147,11 +148,99 @@ my_print() {
         ;;
         magiskapp)
             echo -e "$1"
+=======
+
+# $WHEN_INSTALLING - Константа, объявлена в update-binary. magiskapp/kernelsu/recovery
+# $TMPN - Константа, объявлена в update-binary. Путь к основному каталогу neo data/local/TMPN/...
+# $ZIP - Константа, объявлена в update-binary. Путь к основному tmp.zip файлу neo $TMPN/zip/DFENEO.zip
+# $TMP_TOOLS - Константа, объявлена в update-binary. Путь к каталогу с подкаталогами бинарников $TMPN/unzip/META-INF/tools. В нем каталоги binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $ARCH - Константа, объявлена в update-binary. Архитектура устройства [arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+# $TOOLS - Константа, объявлена в update-binary. Путь к каталогу с бинарниками $TMP_TOOLS/binary/[arm64-v8a]|[armeabi-v7a]|[x86]|[x86_64]
+
+log(){
+    if ! [[ -t 0 ]] && ! [[ "$1" == "-s" ]] ; then
+        if [ -n "$LOGNEO" ]; then
+            if [[ -n "$*" ]] ; then
+                echo -e "\n##-----НАЧАЛО логирования------------>>" >> "$LOGNEO"
+                echo "Лог вызван с строки: ${BASH_LINENO[0]}" >> "$LOGNEO"
+                echo -e "______________________________" >> "$LOGNEO"
+                echo -e "$@"  >> "$LOGNEO"
+            else
+                echo -e "\n##-----НАЧАЛО логирования------------>>"  >> "$LOGNEO"
+                echo "Лог вызван с строки: ${BASH_LINENO[0]}" >> "$LOGNEO"
+                echo -e "______________________________" >> "$LOGNEO"
+                echo -e "" >> "$LOGNEO"
+            fi
+            echo -e "Перенаправление потока" >> "$LOGNEO"
+            while read line; do
+                echo -e "$line" >> "$LOGNEO"
+            done
+            echo -e "\n##-----КОНЕЦ  логирования------------>>\n\n" >> "$LOGNEO"
+        else
+            echo "Error: LOGNEO variable is not defined."
+        fi
+    elif [[ "$1" == "-s" ]] ; then
+    shift 1
+        if [ -n "$LOGNEO" ]; then
+            echo -e "##-----НАЧАЛО логирования------------>>" >> "$LOGNEO"
+            echo "Лог вызван с строки: ${BASH_LINENO[0]}" >> "$LOGNEO"
+            if [[ -n "$*" ]] ; then
+                echo -e "Простой вывод команды текстового лога" >> "$LOGNEO"
+            fi
+            echo -e "|-->>> $*" >> "$LOGNEO"
+            echo -e "##-----КОНЕЦ  логирования------------>>" >> "$LOGNEO"
+        else
+            echo "Error: LOGNEO variable is not defined."
+        fi
+        
+    fi 
+}
+
+
+
+echo "- Определение PATH с новыми бинарниками" &>>$LOGNEO && { # <--- обычный код
+    binary_pull_busubox="mv cp dirname basename grep blockdev [ [[ ps stat unzip mountpoint find echo sleep sed mkdir ls ln readlink realpath cat awk wc du"
+    binary_pull_busubox+=""
+    binary_pull_toybox="file"
+    # Добавление из busybox
+    for name_sub_bin in $binary_pull_busubox ; do
+        ln -s "${TOOLS}/busybox" "${TOOLS}/${name_sub_bin}"
+    done
+    for name_sub_bin in $binary_pull_toybox ; do
+        ln -s "${TOOLS}/toybox" "${TOOLS}/${name_sub_bin}"
+    done
+    # Добавление из toolbox
+    ln -s "${TOOLS}/toolbox" "${TOOLS}/getprop"
+    ln -s "${TOOLS}/toolbox" "${TOOLS}/setprop"
+    ln -s "${TOOLS}/toolbox" "${TOOLS}/getevent"
+    # Добавление из magisk
+    ln -s "${TOOLS}/magisk" "${TOOLS}/resetprop"
+
+    # Экспортирование PATH с новыми бинарниками!! mount использовать системный
+    export PATH="$TOOLS:$PATH"
+    getprop | log getprop
+}
+
+
+my_print(){ # <--- Определение функции [Аругменты $1 "Вывод сообщения"]
+    case $WHERE_INSTALLING in
+        kernelsu|magiskapp)
+            echo -e "$@"
+            echo -e "$@" >> "$LOGNEO"
+            sleep 0.05
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
         ;;
         recovery)
-            echo -e "ui_print $1\nui_print" >>"/proc/self/fd/$ZIPARG2"
+            local input_message_ui="$1"
+            local IFS=$'\n'
+            while read -r line_print; do
+                echo -e "$@" >> "$LOGNEO"
+                echo -e "ui_print $line_print\nui_print" >>"/proc/self/fd/$ZIPARG2"
+                sleep 0.05
+            done <<<"$input_message_ui"
         ;;
     esac
+<<<<<<< HEAD
 =======
     $SYS_STATUS && {
         echo -e "$@"
@@ -179,42 +268,51 @@ my_print() {
 >>>>>>> 49c4a5d (fist_stable start on kernelsu)
 }
 export -f my_print
+=======
+}; export -f my_print
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
 
-abort_neo() {
-    local message="" error_message="" exit_code=0
-    while [ $# -gt 0 ]; do
+abort_neo(){ # <--- Определение функции [ -e "код ошибки {1}|{1.1}"] [ -m "Сообщение ошибки"]
+    message="" 
+    error_message="" 
+    exit_code=0
+    while [[ $# -gt 0 ]]; do
         case "$1" in
         -m)
-            [ -n "$2" ] && {
+            if [[ -n "$2" ]] ; then 
                 message="$2"
                 shift 2
-            } || {
-                my_print "$word46"
+            else 
+                my_print "Отсутствует сообщение после -m"
                 exit 1
-            }
+            fi
             ;;
         -e)
-            [[ -n "$2" ]] && {
+            if [[ -n "$2" ]] ; then
                 error_message="$2"
                 shift 2
-            } || {
-                my_print "$word47"
+            else
+                my_print "Отсутствует сообщение об ошибке после -e"
                 exit 1
-            }
+            fi
             ;;
         *)
-            my_print "$word48 $1"
+            my_print "Неверный аргумент: $1"
             exit 1
             ;;
         esac
     done
+<<<<<<< HEAD
     [[ -n "$message" ]] && {
+=======
+    if [[ -n "$message" ]] ; then
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
         my_print " "
         my_print " "
         my_print "- $message"
-    }
+    fi
 
-    local num="$error_message"
+    num="$error_message"
     rounded_num=$(echo "$num" | awk '{printf "%.0f\n", $1}')
     if ((rounded_num < 0)); then
         error_code=0
@@ -224,40 +322,114 @@ abort_neo() {
         error_code=$rounded_num
     fi
 
+<<<<<<< HEAD
     [[ -n "$error_message" ]] && {
         [ -n "$word42" ] && {
             my_print "  !!!$word42: $error_message!!!"
         } || {
+=======
+    if [[ -n "$error_message" ]] ; then
+        if ! [[ "$error_code" == 0 ]] ; then
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
             my_print "  !!!Exiting with error: $error_message!!!"
-        }
+        fi
+        my_print " "
+        my_print " "
         
+        if [[ -f /tmp/recovery.log ]] ; then
+            cat /tmp/recovery.log | log "\n\n\n ЛОГ ИЗ РЕКАВАРИ"
+        fi
+        date_log=$(date +"%d_%m_%y-%H-%M-%S")
+        if mountpoint -q /storage/emulated ; then 
+            cp $NEOLOG "/storage/emulated/0/neo_file_$date_log.log"
+            my_print "- logfile: /storage/emulated/0/neo_file_$date_log.log"
+        elif mountpoint -q /sdcard/ ; then 
+            cp $NEOLOG "/sdcard/neo_file_$date_log.log"
+            my_print "- logfile: /sdcard/neo_file_$date_log.log"
+        elif mountpoint -q /data/ ; then 
+            cp $NEOLOG "/data/media/0/neo_file_$date_log.log"
+            my_print "- logfile: /data/media/0/neo_file_$date_log.log"
+        else
+            cp $NEOLOG "$TPMN/../neo_file_$date_log.log"
+            my_print "- logfile: $(realpath $TPMN/../neo_file_$date_log.log)"
+        fi
+        
+<<<<<<< HEAD
         my_print " "
         my_print " "
         if [[ -f /tmp/recovery.log ]] ; then
             echo -e "\n\n\n\n\n\n\n\nRECOVERYLOGTHIS:\n\n"
             cat /tmp/recovery.log &>$LOGNEO
         fi
+=======
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
         exit "$error_code"
-    }
-}
-export -f abort_neo
+    fi
+}; export -f abort_neo
 
-patch_fstab_neo() { 
-    removeoverlay=false
-    removepattern=""
-    input_fstab=""
-    mountpoint=""
-    output_fstab=""
+check_it(){ # <--- Определение функции [Аругментов нет]
+    WHAT_CHECK="$1"
+    NEED_ARGS="$2"
+    if [[ "$(grep "$WHAT_CHECK=" "$CONFIG_FILE" | grep -v "#" | wc -l)" == "1" ]] ; then
+        if grep -w "${WHAT_CHECK}=$NEED_ARGS" "$CONFIG_FILE" | grep -v "#" &>> "$LOGNEO" ; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}; export -f check_it
+
+grep_cmdline() { # <--- Определение функции [Аругменты $1 что найти в cmdline]
+  local REGEX="s/^$1=//p"
+  { echo $(cat /proc/cmdline)$(sed -e 's/[^"]//g' -e 's/""//g' /proc/cmdline) | xargs -n 1; \
+    sed -e 's/ = /=/g' -e 's/, /,/g' -e 's/"//g' /proc/bootconfig; \
+  } 2>/dev/null | sed -n "$REGEX"
+}; export -f grep_cmdline
+
+get_current_suffix(){ # <--- Определение функции [--current] [--uncurrent] задает CURRENT_SUFFIX|UNCURRENT_SUFFIX|CURRENT_SLOT|UNCURRENT_SLOT|OUT_MESSAGE_SUFFIX
+    export CURRENT_SUFFIX=""
+    export UNCURRENT_SUFFIX=""
+    export CURRENT_SLOT="0"
+    export UNCURRENT_SLOT="1"
+    export OUT_MESSAGE_SUFFIX="A-ONLY"
+    case "$1" in
+        "--current") A_CASE="_a" ; B_CASE="_b" ;;
+        "--uncurrent") A_CASE="_b" ; B_CASE="_a" ;;
+    esac
+    CSUFFIX_tmp=$(getprop ro.boot.slot_suffix)
+    if [[ -z "$CSUFFIX_tmp" ]]; then
+        CSUFFIX_tmp=$(grep_cmdline androidboot.slot_suffix)
+        if [[ -z "$CSUFFIX_tmp" ]]; then
+            CSUFFIX_tmp=$(grep_cmdline androidboot.slot)
+        fi
+    fi
+    case "$CSUFFIX_tmp" in
+        "$A_CASE") CURRENT_SUFFIX="_a" ; UNCURRENT_SUFFIX="_b" ; CURRENT_SLOT=0 ; UNCURRENT_SLOT=1 ; OUT_MESSAGE_SUFFIX="$CURRENT_SUFFIX" ;;
+        "$B_CASE") CURRENT_SUFFIX="_b" ;  UNCURRENT_SUFFIX="_a" ; CURRENT_SLOT=1 ; UNCURRENT_SLOT=0 ; OUT_MESSAGE_SUFFIX="$CURRENT_SUFFIX" ;;
+    esac
+    
+}; export -f get_current_suffix
+
+find_block_neo(){ # <--- Определение функции -с проверка поиска блока вовзращет истину или лож, -b задает что искать 
+    found_blocks=()
+    block_names=()
+    check_status_o=false
+    log -s "поиск блока, аргументы $*"
     while [ $# -gt 0 ]; do
         case "$1" in
-        -m) 
-            removepattern="$removepattern $2--m--"
-            shift 2
-            while [[ "$1" != "-m" && "$1" != "-f" && "$1" != "-o" && "$1" != "-v" ]] && [ $# -gt 0 ]; do 
-                case "$1" in 
-                    -r|-p)
-                        now_check_pattern="$1"
+            -c)
+                check_status_o=true
+                shift 1
+            ;;
+            -b)
+                shift 1
+                if [[ $# -gt 0 && ${1:0:1} != "-" ]]; then
+                    while [[ $# -gt 0 && ${1:0:1} != "-" ]]; do
+                        block_names+=("$1")
                         shift 1
+<<<<<<< HEAD
                         if [ $# -gt 0 ] && [ "$(printf '%s' "$1" | cut -c 1)" != "-" ]; then
                             while [ $# -gt 0 ] && ( [ "$(printf '%s' "$1" | cut -c 1)" != "-" ] ); do
                                 removepattern="${removepattern}-$now_check_pattern--$1-$now_check_pattern--"
@@ -359,29 +531,41 @@ find_block_neo() {
         *)
             echo "Unknown parameter: $1" &>$LOGNEO
             exit 1
+=======
+                    done
+                fi
+            ;;
+            *)
+                log -s "Unknown parameter: $1"
+                exit 1
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
             ;;
         esac
     done
 
     for block in "${block_names[@]}"; do
-        # my_print "- Searching for block $block"
         if [ -h /dev/block/by-name/$block ]; then
             if ! [ -h "$(readlink /dev/block/by-name/$block)" ] && [ -b "$(readlink /dev/block/by-name/$block)" ]; then
-                found_blocks+=("$(readlink /dev/block/by-name/$block)")
+                log -s "$(readlink /dev/block/by-name/$block)"
+                found_blocks+="$(readlink /dev/block/by-name/$block) "
             fi
         elif [ -b /dev/block/mapper/$block ]; then
             if ! [ -h "$(readlink /dev/block/mapper/$block)" ] && [ -b "$(readlink /dev/block/mapper/$block)" ]; then
-                found_blocks+=("$(readlink /dev/block/mapper/$block)")
+                log -s "$(readlink /dev/block/mapper/$block)" 
+                found_blocks+="$(readlink /dev/block/mapper/$block) "
             fi
         elif [ -h /dev/block/bootdevice/by-name/$block ]; then
+
             if ! [ -h "$(readlink /dev/block/bootdevice/by-name/$block)" ] && [ -b "$(readlink /dev/block/bootdevice/by-name/$block)" ]; then
-                found_blocks+=("$(readlink /dev/block/bootdevice/by-name/$block)")
+                log -s "$(readlink /dev/block/bootdevice/by-name/$block)"
+                found_blocks+="$(readlink /dev/block/bootdevice/by-name/$block) "
             fi
         fi
     done
     if [[ -z "$found_blocks" ]] ; then
-     return 1 
+        return 1
     else
+<<<<<<< HEAD
      if $check_status_o ; then
       return 0
      else
@@ -414,12 +598,15 @@ check_config() {
             check_true_false_only=false    
         elif grep -w "force_start=true" "$CONFIG_NEO" &>$LOGNEO ; then 
             check_true_false_only=true
+=======
+        if $check_status_o ; then
+            return 0
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
         else
-            abort_neo -e 22.1 -m "The config is configured incorrectly. Line force_start="
+            echo "${found_blocks% *}"
         fi
-    else
-        abort_neo -e 22.2 -m "The config is configured incorrectly. More than one line force_start="
     fi
+<<<<<<< HEAD
     for text in zygisk_turn_on add_custom_deny_list; do
         if [[ "$(grep "${text}=" "$CONFIG_NEO" | grep -v "#" | wc -l)" == "1" ]]; then
             if $check_true_false_only ; then
@@ -482,22 +669,35 @@ check_config() {
 volume_selector() {
     # Original idea by chainfire and ianmacd @xda-developers
     local error=false
+=======
+}; export -f find_block_neo
+
+volume_selector(){ # <--- Определение функции  [Аругменты $1 - Выбор (+)] [Аругменты $2 - Выбор (-)]
+    my_print "    $1 $word1"
+    my_print "    $2 $word2"
+    volume_selector_count=0
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
     while true; do
-        local count=0
         while true; do
-            timeout 0.5 $TOOLS/toolbox getevent -lqc 1 2>&1 >$TMPN/events &
+            timeout 0.5 getevent -lqc 1 2>&1 >$volume_selector_events_file &
             sleep 0.1
-            count=$((count + 1))
-            if (grep -q 'KEY_VOLUMEUP *DOWN' $TMPN/events); then
+            volume_selector_count=$((volume_selector_count + 1))
+            if (grep -q 'KEY_VOLUMEUP *DOWN' $volume_selector_events_file); then
+                rm -rf $volume_selector_events_file
+                my_print "**> $1 $word1"
                 return 0
-            elif (grep -q 'KEY_VOLUMEDOWN *DOWN' $TMPN/events); then
+            elif (grep -q 'KEY_VOLUMEDOWN *DOWN' $volume_selector_events_file); then
+                rm -rf $volume_selector_events_file
+                my_print "**> $2 $word2"
                 return 1
             fi
-            [ $count -gt 100 ] && break
+            [ $volume_selector_count -gt 300 ] && break
         done
-        if $error; then
-            abort_neo -e 2.1 -m "$word1"
+        if $volume_selector_error; then
+            rm -rf $volume_selector_events_file
+            abort_neo -e 2.1 -m "$word118"
         else
+<<<<<<< HEAD
             error=true
         fi
     done
@@ -580,13 +780,149 @@ update_partitions(){
             0) 
             SUFFIXCURRENT="_a"
             SUFFIXINCURRENT="_b"
+=======
+            volume_selector_error=true
+        fi
+    done
+}; export -f volume_selector
+
+unmap_all_partitions(){ # <--- Определение функции [Аругментов нет]
+    for partitions in /dev/block/mapper/* ; do
+        if [[ -h "$partitions" ]] && [[ -b "$(readlink -f "$partitions")" ]] ; then 
+            
+            partitions_name="$(basename "$partitions")"
+            my_print "- $word3: $partitions_name"
+
+            umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO"
+            umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO"
+            if [[ -n "$CURRENT_SUFFIX" ]] ; then
+                lptools_new --super "$SUPER_BLOCK" --slot "$CURRENT_SLOT" --suffix "$CURRENT_SUFFIX" --unmap "$partitions_name" | log
+                lptools_new --super "$SUPER_BLOCK" --slot "$UNCURRENT_SLOT" --suffix "$UNCURRENT_SUFFIX" --unmap "$partitions_name" | log
+            else
+                lptools_new --super "$SUPER_BLOCK" --slot "$CURRENT_SLOT" --unmap "$partitions_name" | log
+            fi
+        fi
+    done
+}; export -f unmap_all_partitions
+
+update_partitions(){ # <--- Определение функции [Аругментов нет]
+
+    my_print "- $word4"
+    unmap_all_partitions
+
+    good_slot_suffix=""
+    if [[ -n "$CURRENT_SUFFIX" ]] ; then
+        for check_suffix in _a _b ; do
+            for check_slot in 0 1 ; do
+                system_check_state=false
+                vendor_check_state=false
+                for partitions in vendor system ; do
+                    continue_fail=true
+                    if lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --map "${partitions}$check_suffix" &>> "$LOGNEO" ; then
+                        
+                        mkdir -pv "$TMPN/check_partitions/${partitions}$check_suffix" | log
+                        if ! mount -r "/dev/block/mapper/${partitions}$check_suffix" "$TMPN/check_partitions/${partitions}$check_suffix" &>> "$LOGNEO" ; then
+                           
+                            if ! mount -r "/dev/block/mapper/${partitions}$check_suffix" "$TMPN/check_partitions/${partitions}$check_suffix" &>> "$LOGNEO" ; then
+                                
+                                if ! mount -r "/dev/block/mapper/${partitions}$check_suffix" "$TMPN/check_partitions/${partitions}$check_suffix" &>> "$LOGNEO" ; then
+                                    
+                                    continue_fail=false
+                                fi
+                            fi
+                        fi
+                        if $continue_fail && mountpoint "$TMPN/check_partitions/${partitions}$check_suffix" &>> "$LOGNEO" ; then 
+                            if [[ "$partitions" == "vendor" ]] ; then
+                                vendor_check_state=true
+                            else
+                                system_check_state=true
+                            fi
+                        fi
+                        umount -fl "$TMPN/check_partitions/${partitions}$check_suffix" | log "umount -fl "$TMPN/check_partitions/${partitions}$check_suffix""
+                        lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --unmap "${partitions}$check_suffix" | log "lptools_new --super "$SUPER_BLOCK" --suffix "$check_suffix" --slot "$check_slot" --unmap "${partitions}$check_suffix""
+                        rm -rf "$TMPN/check_partitions/${partitions}$check_suffix"
+                        sleep 0.2
+                    fi
+                done
+                
+                if $system_check_state && $vendor_check_state ; then
+                    good_slot_suffix+="${check_suffix}${check_slot}"
+                fi
+            done
+        done 
+        
+        case "$good_slot_suffix" in
+            "_a0_a1"|"_a0") 
+                FINAL_ACTIVE_SLOT=0
+                FINAL_ACTIVE_SUFFIX=_a
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
             ;;
-            1) 
-            SUFFIXCURRENT="_b"
-            SUFFIXINCURRENT="_a"
+            "_b0_b1"|"_b1") 
+                FINAL_ACTIVE_SLOT=1
+                FINAL_ACTIVE_SUFFIX=_b
+            ;;
+            "_a0_b1")
+                if grep -q "source_slot: A" /tmp/recovery.log && grep -q "target_slot: B" /tmp/recovery.log ; then
+                    FINAL_ACTIVE_SLOT=1
+                    FINAL_ACTIVE_SUFFIX=_b
+                elif grep -q "source_slot: B" /tmp/recovery.log && grep -q "target_slot: A" /tmp/recovery.log ; then
+                    FINAL_ACTIVE_SLOT=0
+                    FINAL_ACTIVE_SUFFIX=_a
+                else
+                    FINAL_ACTIVE_SLOT=$CURRENT_SLOT
+                    FINAL_ACTIVE_SUFFIX=$CURRENT_SUFFIX
+                fi
+            ;;
+            *)
+                my_print " !!!!!!!!! " 
+                if ! $FORSE_START ; then 
+                    my_print "- $word5"
+                    if volume_selector "$word142" "$word143" ; then 
+                        FINAL_ACTIVE_SLOT=0
+                        FINAL_ACTIVE_SUFFIX=_a
+                    else
+                        FINAL_ACTIVE_SLOT=1
+                        FINAL_ACTIVE_SUFFIX=_b
+                    fi
+                else 
+                    abort_neo -e 119.1 -m "$word119"
+                fi
             ;;
         esac
+        unmap_all_partitions
+
+        for partition in $(lptools_new --super $SUPER_BLOCK --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | grep -v "inject_neo" | awk '{print $1}') ; do
+            partition_name=${partition/"NamePartInGroup->"/}
+            if lptools_new --super "$SUPER_BLOCK" --slot $FINAL_ACTIVE_SLOT --suffix $FINAL_ACTIVE_SUFFIX --map $partition_name &>> "$LOGNEO" ; then
+                my_print "- $word6: $partition_name"
+                sleep 0.5
+            else 
+                my_print "- $word7: $partition_name"
+            fi
+        done
+
+        if ! [[ "$CURRENT_SUFFIX" == "$FINAL_ACTIVE_SUFFIX" ]] ; then
+            SWITCH_SLOT_RECOVERY=true
+            magisk resetprop ro.boot.slot_suffix $FINAL_ACTIVE_SUFFIX
+            if grep androidboot.slot_suffix /proc/bootconfig ; then
+                my_print "- $word8"
+                edit_text="$(cat /proc/bootconfig | sed 's/androidboot.slot_suffix = "'$CURRENT_SUFFIX'"/androidboot.slot_suffix = "'$FINAL_ACTIVE_SUFFIX'"/')"
+                echo -e "$edit_text" > $TMPN/bootconfig_new 
+                mount $TMPN/bootconfig_new /proc/bootconfig | log "mount $TMPN/bootconfig_new /proc/bootconfig"
+            fi
+            if grep "androidboot.slot_suffix=$CURRENT_SUFFIX" /proc/cmdline || grep "androidboot.slot=$CURRENT_SUFFIX" /proc/cmdline ; then
+                my_print "- $word9"
+                edit_text="$(cat /proc/cmdline | sed 's/androidboot.slot_suffix='$CURRENT_SUFFIX'/androidboot.slot_suffix='$FINAL_ACTIVE_SUFFIX'/' | sed 's/androidboot.slot='$CURRENT_SUFFIX'/androidboot.slot='$FINAL_ACTIVE_SUFFIX'/')"
+                echo -e "$edit_text" > $TMPN/cmdline_new 
+                mount $TMPN/cmdline_new /proc/cmdline | log "mount $TMPN/cmdline_new /proc/cmdline"
+            fi
+            if $BOOTCTL_STATE ; then
+                my_print "- $word10: $FINAL_ACTIVE_SLOT"
+                bootctl set-active-boot-slot $FINAL_ACTIVE_SLOT
+            fi
+        fi
     else
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -1070,6 +1406,8 @@ update_partitions(){ # <--- Определение функции [Аругме�
             fi
         fi
     else
+=======
+>>>>>>> 0d2c42ccdcb372edb0143eb0693062c0c819d15e
         unmap_all_partitions
         for partition in $(lptools_new --super $SUPER_BLOCK --slot $CURRENT_SLOT --get-info | grep "NamePartInGroup->" | grep -v "neo_inject" | grep -v "inject_neo" | awk '{print $1}') ; do
             partition_name=${partition/"NamePartInGroup->"/}
