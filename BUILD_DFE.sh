@@ -97,8 +97,8 @@ for sortlanguage in $language ; do
     ! [ -f $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language" ] && {
         mkdir $WORK_DIR/"${FOLDER}-builds/${FOLDER}-$VERSION/Full/$language"
     }
-    current_lng=$(grep "languages=" $WORK_DIR/$FOLDER/NEO.config)
-    sed -i "s/$current_lng/languages=$sortlanguage/" "$WORK_DIR/$FOLDER/NEO.config"
+    current_lng=$(grep "LANGUAGE=" $WORK_DIR/$FOLDER/NEO.config)
+    sed -i "s/$current_lng/LANGUAGE=$sortlanguage/" "$WORK_DIR/$FOLDER/NEO.config"
     # echo $current_lng
     # grep "languages=" $WORK_DIR/$FOLDER/NEO.config 
     # sleep 20
