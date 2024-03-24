@@ -1,3 +1,0 @@
-    #--Indonesian--#
-    # Mengaktifkan perbaikan safety net yang tertanam di dfe-neo, yang berjalan pada tahap inisialisasi selama boot, hanya berfungsi jika selinux tidak diatur ke mode enforcing, juga berfungsi jika Magisk atau KernelSU terpasang
-    # Pilihan yang tersedia adalah false, true, ask

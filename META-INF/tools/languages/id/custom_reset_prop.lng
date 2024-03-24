@@ -1,7 +1,0 @@
-    #--Indonesian--#
-    # *** Opsi ini hanya akan berfungsi jika Magisk/KernelSu terinstal atau jika Anda memiliki selinux=permissive
-    # Properti kustom akan diatur pada tahap di mana Anda menentukannya
-    # Contoh penggunaan:
-    # `custom_reset_prop="--init my.prop=value my.prop2=value my.prop3=value --early-fs my.prop=value my.prop2=value my.prop3=value"` dan seterusnya
-    # Tahap yang tersedia: init: `--init`, `--early-fs`, `--post-fs-data`, `--boot_completed`
-    # Jika tidak, biarkan kosong  

@@ -1,4 +1,0 @@
-    #--俄语--#
-    # 此选项指示是否需要除了在 --late 中替换 fstab 外，在 --early init 中也进行 fstab 中的替换。--early mount 包括除了设置了 first_stage_mount 和 latemount 标志的所有分区。
-    # 默认值为 false。
-    # 如果设置为 `ask`，则在安装时脚本将提示用户选择选项。

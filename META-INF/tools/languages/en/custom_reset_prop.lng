@@ -1,7 +1,0 @@
-    #--English--#
-    # *** This option will only work if Magisk/KernelSu is installed or if you have selinux=permissive
-    # Custom props will be set at the stage where you specified
-    # Example of usage:
-    # `custom_reset_prop="--init my.prop=value my.prop2=value my.prop3=value --early-fs my.prop=value my.prop2=value my.prop3=value"` and so on
-    # Available stages: init: `--init`, `--early-fs`, `--post-fs-data`, `--boot_completed`
-    # Otherwise, leave it blank

@@ -1,3 +1,0 @@
-    #--English--#
-    # Enables the built-in safety net fix embedded in dfe-neo, which runs at the initialization stage during boot, works only if selinux is not set to enforcing mode, also works if Magisk or KernelSU is installed
-    # Available options are false, true, ask

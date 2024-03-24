@@ -1,6 +1,0 @@
-    #--Indonesian--#
-    # Opsi Instalasi Magisk
-    #  `magisk`: Tentukan versi Magisk untuk instalasi, atau biarkan kosong.
-    #      Versi yang tersedia: Magisk-v27.0, Magisk-v26.4-kitsune-2, Magisk-v26.4, MagiskDelta-v26.4.
-    #      Contoh: magisk Magisk-v27.0
-    #      Untuk menginstal Magisk dari direktori yang sama dengan neo.zip, tambahkan awalan "EXT:", seperti "EXT:Magisk-v24.3.zip".

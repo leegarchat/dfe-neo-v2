@@ -1,8 +1,0 @@
-    #--English--#
-    # Zygisk Turn On Option:
-    # This option forcibly enables `zygisk` mode on device startup, even if `Magisk` was installed for the first time. 
-    # Available options: 
-    # `false` - disable
-    # `ask` - prompt during installation,
-    # `first_time_boot` - the script will be executed only once during the first boot, recording of first-time usage is stored in Magisk memory,
-    # `always_on_boot` - the script will run every time during each boot of the system.

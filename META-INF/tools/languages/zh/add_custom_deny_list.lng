@@ -1,8 +1,0 @@
-    #--俄语--#
-    # 添加自定义禁止列表选项：
-    # 此选项在启动时将应用程序包记录到 `denylist` 中。仅当安装了 `Magisk` 时才有效。
-    # 您可以手动在 `.zip/META-INF/tools/denylist.txt` 中配置配置文件。
-    # 可用选项为：
-    # `false` - 禁用、`ask` - 在安装时询问、
-    # `first_time_boot` - 脚本仅在首次启动时执行，首次使用信息存储在 Magisk 内存中、
-    # `always_on_boot` - 脚本将在每次系统启动时执行。

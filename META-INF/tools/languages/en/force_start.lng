@@ -1,4 +1,0 @@
-    #--English--#
-    # The `force_start` option is responsible for initiating a forced start without the selection menu using volume keys. The script will throw an error if the configuration is not set up correctly. 
-    # There should be no `ask` values in any of the arguments. 
-    # Available options are `false` or `true`.

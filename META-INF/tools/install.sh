@@ -301,15 +301,17 @@ unmap_all_partitions(){ # <--- Определение функции [Аругм
         if [[ -h "$partitions" ]] && [[ -b "$(readlink -f "$partitions")" ]] ; then 
             
             partitions_name="$(basename "$partitions")"
-            my_print "- $word3: $partitions_name"
+            if ! [[ "$partitions_name" == userdata ]] ; then
+                my_print "- $word3: $partitions_name"
 
-            umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO"
-            umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO"
-            if [[ -n "$CURRENT_SUFFIX" ]] ; then
-                lptools_new --super "$SUPER_BLOCK" --slot "$CURRENT_SLOT" --suffix "$CURRENT_SUFFIX" --unmap "$partitions_name" | log
-                lptools_new --super "$SUPER_BLOCK" --slot "$UNCURRENT_SLOT" --suffix "$UNCURRENT_SUFFIX" --unmap "$partitions_name" | log
-            else
-                lptools_new --super "$SUPER_BLOCK" --slot "$CURRENT_SLOT" --unmap "$partitions_name" | log
+                umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO" && umount -fl "$partitions" &>> "$LOGNEO"
+                umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO" && umount -fl "$(readlink -f "$partitions")" &>> "$LOGNEO"
+                if [[ -n "$CURRENT_SUFFIX" ]] ; then
+                    lptools_new --super "$SUPER_BLOCK" --slot "$CURRENT_SLOT" --suffix "$CURRENT_SUFFIX" --unmap "$partitions_name" | log
+                    lptools_new --super "$SUPER_BLOCK" --slot "$UNCURRENT_SLOT" --suffix "$UNCURRENT_SUFFIX" --unmap "$partitions_name" | log
+                else
+                    lptools_new --super "$SUPER_BLOCK" --slot "$CURRENT_SLOT" --unmap "$partitions_name" | log
+                fi
             fi
         fi
     done
@@ -384,7 +386,7 @@ update_partitions(){ # <--- Определение функции [Аругме�
             ;;
             *)
                 my_print " !!!!!!!!! " 
-                if ! $FORSE_START ; then 
+                if ! $FORCE_START ; then 
                     my_print "- $word5"
                     if volume_selector "$word142" "$word143" ; then 
                         FINAL_ACTIVE_SLOT=0
@@ -767,7 +769,7 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
             ramdisk_compress_format=$(grep "Detected format:" $boot_folder/log.decompress | sed 's/.*\[\(.*\)\].*/\1/')
         fi
         if [[ -n "$ramdisk_compress_format" ]] ; then
-            if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract ; then
+            if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
                 exit 152
             fi
         fi
@@ -819,7 +821,7 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
 }; export -f ramdisk_first_stage_patch
 
 check_dfe_neo_installing(){ # <--- Определение функции [Аругментов нет]
-    if ! $FORSE_START; then
+    if ! $FORCE_START; then
         my_print "- $word44"
         export DETECT_NEO_IN_BOOT=false
         export DETECT_NEO_IN_SUPER=false
@@ -882,7 +884,7 @@ check_dfe_neo_installing(){ # <--- Определение функции [Ару
                         if magiskboot decompress $path_check_boot/ramdisk.cpio $path_check_boot/d.cpio &>> "$LOGNEO" ; then
                             rm -f $path_check_boot/ramdisk.cpio | log
                             mv $path_check_boot/d.cpio $path_check_boot/ramdisk.cpio
-                            if ! magiskboot cpio $path_check_boot/ramdisk.cpio extract ; then
+                            if ! magiskboot cpio $path_check_boot/ramdisk.cpio extract &>> "$LOGNEO" ; then
                                 cd "$TMPN"
                                 rm -rf $path_check_boot
                                 continue
@@ -1090,7 +1092,7 @@ confirm_menu(){ # <--- Определение функции [Аругменто
     fi
     my_print " "
     my_print " "
-    if ! $FORSE_START ; then
+    if ! $FORCE_START ; then
         my_print "- $word61"
         if ! volume_selector "$word157" "$word158" ; then 
             abort_neo -e 200 -m "Вы вышли из программы"
@@ -1132,35 +1134,6 @@ add_custom_rc_line_to_inirc_and_add_files(){ # <--- Определение фу�
     fi
 }; export -f add_custom_rc_line_to_inirc_and_add_files
 
-move_fstab_from_original_vendor_and_patch(){ # <--- Определение функции [Аругментов нет]
-    fstab_names_check="$basename_fstab "
-    fstab_names_check+="${basename_fstab/$hardware_boot/$default_fstab_prop} "
-    fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.device)} "
-    fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.system.device)} "
-    fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.vendor.device)} "
-    fstab_names_check+="${basename_fstab/$hardware_boot/$(getprop ro.product.odm.device)}"
-
-    my_print "- $word64"
-    for original_fstab_name_for in $fstab_names_check ; do
-        full_path_to_fstab_into_for="$full_path_to_vendor_folder$(dirname ${path_original_fstab})/$original_fstab_name_for"
-        if [[ -f "$full_path_to_fstab_into_for" ]] && grep "/userdata" "$full_path_to_fstab_into_for" | grep "latemount" | grep -v "#" &>> "$LOGNEO" ; then
-            my_print "- $word65"
-            my_print "*> $original_fstab_name_for"
-            my_print "- $word66"
-            cp -afc "$full_path_to_fstab_into_for" "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab"
-            my_print "- $word67:"
-            my_print "*> neo_inject${CURRENT_SUFFIX}/$basename_fstab"
-            patch_fstab_neo $FSTAB_PATCH_PATERNS -f "$full_path_to_fstab_into_for" -o "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab"
-            final_fstab_name="$original_fstab_name_for"
-            return 0
-            break
-        fi
-        my_print ">> $word68: $original_fstab_name_for"
-    done
-    return 1
-    
-
-}; export -f move_fstab_from_original_vendor_and_patch
 
 patch_fstab_neo(){ # <--- Определение функции [-m, -r|-p, -f, -o, -v]
     removeoverlay=false
@@ -1262,6 +1235,31 @@ patch_fstab_neo(){ # <--- Определение функции [-m, -r|-p, -f, 
 
 }; export -f patch_fstab_neo
 
+move_fstab_from_original_vendor_and_patch(){ # <--- Определение функции [Аругментов нет]
+    original_fstab_name_for="$(basename "$1")"
+    full_path_to_fstab_into_for="$1"
+    my_print ">> $word68: $original_fstab_name_for"
+    
+    if [[ -f "$full_path_to_fstab_into_for" ]] && grep "/userdata" "$full_path_to_fstab_into_for" | grep "latemount" | grep -v "#" &>> "$LOGNEO" ; then
+        my_print "- $word66"
+        if [[ -f "$TMPN/neo_inject${CURRENT_SUFFIX}/$original_fstab_name_for" ]] ; then
+            return 20
+        else
+            my_print "- $word67:"
+            my_print "*> neo_inject${CURRENT_SUFFIX}/$original_fstab_name_for"
+            cp -afc "$full_path_to_fstab_into_for" "$TMPN/neo_inject${CURRENT_SUFFIX}/$original_fstab_name_for"
+            patch_fstab_neo $FSTAB_PATCH_PATERNS -f "$full_path_to_fstab_into_for" -o "$TMPN/neo_inject${CURRENT_SUFFIX}/$original_fstab_name_for"
+            final_fstab_name+="$original_fstab_name_for "
+            return 10
+        fi
+    fi
+        
+    return 30
+    
+
+}; export -f move_fstab_from_original_vendor_and_patch
+
+
 move_files_from_vendor_hw(){ # <--- Определение функции [Аругментов нет]
 
     echo "- Определение ro_haedware and fstab_suffix" &>>$LOGNEO && { # <--- обычный код
@@ -1288,51 +1286,72 @@ move_files_from_vendor_hw(){ # <--- Определение функции [Ар�
         mkdir -pv "$TMPN/neo_inject${CURRENT_SUFFIX}/lost+found" | log
         cp -afc ${VENDOR_FOLDER}/etc/init/hw/* $TMPN/neo_inject${CURRENT_SUFFIX}/
     }
+    
     echo "- Поиск fstab по .rc файлам" &>>$LOGNEO && { # <--- обычный код
+        fstab_names_check=""
         for file_find in "$TMPN/neo_inject${CURRENT_SUFFIX}"/*.rc ; do
             if grep "mount_all" $file_find | grep "\-\-late" | grep -v "#" &>> "$LOGNEO" ; then
-                if grep "mount_all --late" $file_find | grep -v "#" &>> "$LOGNEO" ; then
-                    if [[ -z "$path_original_fstab" ]] && [[ -z "$basename_fstab" ]] ; then
-                        path_original_fstab="/etc/fstab.$hardware_boot"
-                        basename_fstab=$(basename "$path_original_fstab")
-                    fi
-                    sed -i '/^    mount_all.*--late$/s/.*/    mount_all \/vendor\/etc\/init\/hw\/fstab.'$hardware_boot' --late/g' $file_find
-                    if $MOUNT_FSTAB_EARLY_TOO ; then
-                        sed -i '/^    mount_all.*--early$/s/.*/    mount_all \/vendor\/etc\/init\/hw\/fstab.'$hardware_boot' --early/g' $file_find
-                    fi
-                    last_init_rc_file_for_write=$file_find
-                else    
-                    fstab_find="$(grep mount_all $file_find | grep "\-\-late" | grep -v "#" | sort -u)" 
-                    new_path_fstab="$(echo "$fstab_find" | sed "s|[^ ]*fstab[^ ]*|/vendor/etc/init/hw/fstab.$hardware_boot|")"
-                    sed -i "s|$fstab_find|$new_path_fstab|g" "$file_find"
-                    if $MOUNT_FSTAB_EARLY_TOO ; then
-                        sed -i "s|${fstab_find//"--late"/"--early"}|${new_path_fstab//"--late"/"--early"}|g" "$file_find"
-                    fi
-                    if [[ -z "$path_original_fstab" ]] && [[ -z "$basename_fstab" ]] ; then
-                        path_original_fstab="$(echo "$fstab_find" | sed -n 's/.* \/[^/]*\(\/.*\) --late/\1/p')"
-                        if (echo "$path_original_fstab" | grep -q "\\$"); then
-                            basename_fstab="$(basename $(echo "$fstab_find" | sed -n 's/.* \/[^/]*\(\/.*\) --late/\1/p' | sed 's/\(\$.*\)//')$hardware_boot)"
-                        else 
-                            basename_fstab="$(basename $(echo "$fstab_find" | sed -n 's/.* \/[^/]*\(\/.*\) --late/\1/p'))"
+
+                fstab_lines_all=$(grep mount_all $file_find | grep "\-\-late" | grep -v "#" | sort -u)
+
+                while IFS= read -r while_line_fstab; do
+                    if echo "$while_line_fstab" | grep "mount_all --late" | grep -v "#" &>> "$LOGNEO" ; then
+                        echo 11 | log
+                        for fstab_needed_patch in "fstab.$hardware_boot" "fstab.$default_fstab_prop" "fstab.$(getprop ro.product.device)" ; do
+                            echo 12 | log
+                            if ! echo "$fstab_names_check" | grep $fstab_needed_patch &>>$LOGNEO ; then
+                                fstab_names_check+="$fstab_needed_patch "
+                            fi
+                            move_fstab_from_original_vendor_and_patch "$full_path_to_vendor_folder/etc/$fstab_needed_patch"
+                            case "$?" in
+                            10) 
+                                final_fstab_name+="$fstab_needed_patch "
+                                sed -i '/^    mount_all --late$/s/.*/    mount_all \/vendor\/etc\/init\/hw\/fstab.'$hardware_boot' --late/g' "$file_find"
+                                $MOUNT_FSTAB_EARLY_TOO && sed -i '/^    mount_all --early$/s/.*/    mount_all \/vendor\/etc\/init\/hw\/fstab.'$hardware_boot' --early/g' $file_find
+                            ;;
+                            esac
+                        done
+                        last_init_rc_file_for_write=$file_find
+                    else
+                        fstab_base_name__=$(basename "$(echo "$while_line_fstab" | awk '{print $2}')")
+                        if echo "$fstab_base_name__" | grep "\\$" &>>$LOGNEO ; then
+                            echo 14 | log
+                            fstab_base_name__=""
+                            for file in "fstab.$hardware_boot" "fstab.$default_fstab_prop" "fstab.$(getprop ro.product.device)" ; do
+                                if [[ -f $full_path_to_vendor_folder/etc/$file ]] ; then
+                                    fstab_base_name__="$file"
+                                    break
+                                fi
+                            done
+                            [[ -z "$fstab_base_name__" ]] && exit 81
                         fi
-                    fi
-                    last_init_rc_file_for_write=$file_find
-                fi
+                        echo 17 | log
+                        if ! echo "$fstab_names_check" | grep $fstab_base_name__ &>>$LOGNEO ; then
+                            fstab_names_check+="$fstab_base_name__ "
+                        fi
+                        new_path_fstab="$(echo "$while_line_fstab" | sed "s|[^ ]*fstab[^ ]*|/vendor/etc/init/hw/$fstab_base_name__|")"
+                        move_fstab_from_original_vendor_and_patch "$full_path_to_vendor_folder/etc/$fstab_base_name__"
+                        case "$?" in
+                            10)
+                                final_fstab_name+="$fstab_needed_patch " 
+                            ;;
+                        esac
+                        sed -i "s|$while_line_fstab|$new_path_fstab|g" "$file_find"
+                        last_init_rc_file_for_write=$file_find
+                        if $MOUNT_FSTAB_EARLY_TOO ; then
+                            sed -i "s|${while_line_fstab//"--late"/"--early"}|${new_path_fstab//"--late"/"--early"}|g" "$file_find"
+                        fi
+                    fi  
+                done <<< "$fstab_lines_all"
             fi
         done
-        if [[ -z "$path_original_fstab" ]] || [[ -z "$basename_fstab" ]]; then
-
-            abort_neo -e 36.2 -m "$word125"
-        fi
-        add_custom_rc_line_to_inirc_and_add_files "$last_init_rc_file_for_write"
-        if ! move_fstab_from_original_vendor_and_patch ; then
+        if [[ -z "$final_fstab_name" ]] ; then
             if ! [[ "$full_path_to_vendor_folder" == "/vendor" ]] ; then 
                 umount -fl "$full_path_to_vendor_folder"
             fi
             abort_neo -e 36.1 -m "$word126 /vendor/etc/[${fstab_names_check// /\|}]"
         fi
-        [[ -f "$TMPN/neo_inject${CURRENT_SUFFIX}/$basename_fstab" ]] || abort_neo -e 36.6 -m "$word127"
-
+        add_custom_rc_line_to_inirc_and_add_files "$last_init_rc_file_for_write"
     }
 
 
@@ -1595,9 +1614,16 @@ check_first_stage_fstab(){ # <--- Определение функции [Ару�
                     fi
                     
                 fi
-
+                    find_args=""
                     ls | log "Содержимое папки $boot_check_folder"
-                    for fstab in $(find "$boot_check_folder/ramdisk_folder/" -name "$final_fstab_name"); do
+                    for needed_add_find_arg in $final_fstab_name ; do
+                        if [[ -z "$find_args" ]] ; then 
+                            find_args="-name $needed_add_find_arg"
+                        else
+                            find_args+=" -or -name $needed_add_find_arg"
+                        fi
+                    done
+                    for fstab in $(find "$boot_check_folder/ramdisk_folder/" $find_args); do
                         if grep -w "/system" $fstab | grep "first_stage_mount" &>> "$LOGNEO" ; then
                             BOOT_PATCH+="$boot "
                         fi
@@ -1745,7 +1771,7 @@ echo "- Определение стандартных переменных" &>>$
     my_print "- $word85"
     # NEO.config аргументы \/--------------------\/
     export LANGUAGE=""
-    export FORSE_START=""
+    export FORCE_START=""
     export FSTAB_EXTENSION=""
     export DISABLE_VERITY_VBMETA_PATCH=""
     export HIDE_NOT_ENCRYPTED=""
@@ -1839,10 +1865,10 @@ echo "- Чтение конфига и проверка его досутптн�
         PROBLEM_CONFIG+="$(grep "WHERE_TO_INJECT=" "$CONFIG_FILE" | grep -v "#") "
     fi
 
-    if check_it "FORSE_START" "true" || check_it "FORSE_START" "false" ; then
-        echo "FORSE_START fine" | log
+    if check_it "FORCE_START" "true" || check_it "FORCE_START" "false" ; then
+        echo "FORCE_START fine" | log
     else
-        PROBLEM_CONFIG+="$(grep "FORSE_START=" "$CONFIG_FILE" | grep -v "#") "
+        PROBLEM_CONFIG+="$(grep "FORCE_START=" "$CONFIG_FILE" | grep -v "#") "
     fi
     if [[ -n "$PROBLEM_CONFIG" ]] ; then
         my_print "- $word95:"
@@ -1851,7 +1877,9 @@ echo "- Чтение конфига и проверка его досутптн�
         done
         abort_neo -e 2.8 -m "$word132"
     fi
+    sed -i 's/\r$//' "$CONFIG_FILE"
     source "$CONFIG_FILE" || abort_neo -e "8.2" -m "Не удалось считать файл конфигурации"
+    set +e
     my_print "- $word96"  
 }
 
@@ -1939,7 +1967,7 @@ echo "- Поиск базовых блоков recovery|boot|vendor_boot и пр
 echo "- Проверка запущенной системы и OTA статуса, переопределние слота на противоположный" &>>$LOGNEO && { # <--- обычный код
     if $SYS_STATUS ; then
         if ! $SNAPSHOTCTL_STATE ; then
-            if ! $FORSE_START ; then 
+            if ! $FORCE_START ; then 
                 my_print "- !! $word111"
                 my_print "- $word112"
                 if volume_selector "$word159" "$word160" ; then
@@ -1961,7 +1989,7 @@ echo "- Проверка запущенной системы и OTA статус
                 abort_neo -e "83.1" -m "$word135"
             elif [[ "$SNAPSHOT_STATUS" == "unverified" ]] ; then
                 my_print "- $word113"
-                if ! $FORSE_START ; then
+                if ! $FORCE_START ; then
                     my_print "- $word114"
                     if ! volume_selector "$word161" "$word162" ; then
                         abort_neo -e "83.2" -m "$word136"

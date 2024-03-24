@@ -1,8 +1,0 @@
-    #--English--#
-    # Denylist Option:
-    # This option writes application packages to the denylist upon startup. It works only if Magisk is installed.
-    # You can manually configure the configuration file in `.zip/META-INF/tools/denylist.txt`.
-    # `false` - disable
-    # `ask` - prompt during installation,
-    # `first_time_boot` - the script will be executed only once during the first boot, recording of first-time usage is stored in Magisk memory,
-    # `always_on_boot` - the script will run every time during each boot of the system.

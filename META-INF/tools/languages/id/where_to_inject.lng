@@ -1,6 +1,0 @@
-    #--Indonesian--#
-    # Seksinya Konfigurasi: Opsi Injeksi
-    #  `where_to_inject`: Opsi ini menentukan di mana modul akan diinjeksikan. Pilih salah satu:
-    #      `super`: Modul akan dipasang ke slot saat ini bersamaan dengan sistem, vendor, dll.
-    #      `vendor_boot`: Modul akan dipasang ke slot tidak aktif vendor_boot (Tidak tersedia untuk perangkat A-only).
-    #      `boot`: Modul akan dipasang ke slot tidak aktif boot (Tidak tersedia untuk perangkat A-only).

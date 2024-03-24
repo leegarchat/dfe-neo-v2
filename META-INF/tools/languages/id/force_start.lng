@@ -1,4 +1,0 @@
-    #--Indonesian--#
-    # Opsi `force_start` bertanggung jawab atas memulai secara paksa tanpa menu seleksi menggunakan tombol volume. Skrip akan menampilkan kesalahan jika konfigurasi tidak diatur dengan benar. 
-    # Tidak boleh ada nilai `ask` dalam salah satu argumen. 
-    # Opsi yang tersedia adalah `false` atau `true`.

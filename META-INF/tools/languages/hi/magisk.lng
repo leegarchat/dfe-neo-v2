@@ -1,5 +1,0 @@
-    # Magisk स्थापना विकल्प
-    #  `magisk`: स्थापित करने के लिए Magisk का संस्करण निर्दिष्ट करें या खाली छोड़ें।
-    #      उपलब्ध संस्करण: Magisk-v27.0, Magisk-v26.4-kitsune-2, Magisk-v26.4, MagiskDelta-v26.4।
-    #      उदाहरण: magisk Magisk-v27.0
-    #      Magisk को neo.zip के उसी निर्देशिका से स्थापित करने के लिए, "EXT:" उपसर्ग जोड़ें, उदाहरण के लिए, "EXT:Magisk-v24.3.zip"।
