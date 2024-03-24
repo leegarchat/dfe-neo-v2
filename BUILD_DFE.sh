@@ -133,11 +133,26 @@ for full_lite in $FULL_LITE_ARGS ; do
         cd "$DIRNAME"
         lng="$language"
         case "$lng" in
-            en) long_lng="english-language" ;;
-            ru) long_lng="russian-language" ;;
-            id) long_lng="indonesian-language" ;;
-            hi) long_lng="hindi-language" ;;
-            zh) long_lng="chinese-language" ;;
+            en) 
+                long_lng="english-language"
+                README_FILE="README.md"
+                ;;
+            ru) 
+                long_lng="russian-language" 
+                README_FILE="README_ru.md"
+                ;;
+            id) 
+                long_lng="indonesian-language" 
+                README_FILE="README_id.md"
+                ;;
+            hi) 
+                long_lng="hindi-language" 
+                README_FILE="README_hi.md"
+                ;;
+            zh) 
+                long_lng="chinese-language" 
+                README_FILE="README_zh.md"
+                ;;
         esac
         
         [[ -d "$DIRNAME/../DFE-NEO-builds/DFE-NEO-$VERSION/$full_lite/$long_lng" ]] || mkdir -pv "$DIRNAME/../DFE-NEO-builds/DFE-NEO-$VERSION/$full_lite/$long_lng" &>/dev/null
@@ -169,7 +184,8 @@ for full_lite in $FULL_LITE_ARGS ; do
             esac 
             cd "$DIRNAME/META-INF/tools/languages/$language"
             7z a -mx9 "$NAME_ZIP" NEO.config &>/dev/null
-            cd "$DIRNAME"
+            cd "$DIRNAME" && 
+            7z a -mx9 "$NAME_ZIP" $README_FILE &>/dev/null 
             [[ "$full_lite" == full ]] && 7z a -mx9 "$NAME_ZIP" "${magisk_files[@]}" &>/dev/null
             echo "- Компиляция $full_lite:$(basename "$NAME_ZIP") завершена"
             } &
