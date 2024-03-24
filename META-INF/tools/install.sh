@@ -773,7 +773,14 @@ ramdisk_first_stage_patch(){ # <--- Определение функции $1 п�
                 exit 152
             fi
         fi
-        for fstab in $(find "$boot_folder/ramdisk_folder/" -name "$final_fstab_name"); do
+        for needed_add_find_arg in $final_fstab_name ; do
+            if [[ -z "$find_args" ]] ; then 
+                find_args="-name $needed_add_find_arg"
+            else
+                find_args+=" -or -name $needed_add_find_arg"
+            fi
+        done
+        for fstab in $(find "$boot_folder/ramdisk_folder/" $needed_add_find_arg); do
             my_print "- $word36 $(basename $fstab)"
             if grep -q "/venodr/etc/init/hw" "$fstab" ; then
                 sed -i '/\/venodr\/etc\/init\/hw/d' "$fstab"
@@ -1249,7 +1256,6 @@ move_fstab_from_original_vendor_and_patch(){ # <--- Определение фу�
             my_print "*> neo_inject${CURRENT_SUFFIX}/$original_fstab_name_for"
             cp -afc "$full_path_to_fstab_into_for" "$TMPN/neo_inject${CURRENT_SUFFIX}/$original_fstab_name_for"
             patch_fstab_neo $FSTAB_PATCH_PATERNS -f "$full_path_to_fstab_into_for" -o "$TMPN/neo_inject${CURRENT_SUFFIX}/$original_fstab_name_for"
-            final_fstab_name+="$original_fstab_name_for "
             return 10
         fi
     fi
@@ -1293,11 +1299,15 @@ move_files_from_vendor_hw(){ # <--- Определение функции [Ар�
             if grep "mount_all" $file_find | grep "\-\-late" | grep -v "#" &>> "$LOGNEO" ; then
 
                 fstab_lines_all=$(grep mount_all $file_find | grep "\-\-late" | grep -v "#" | sort -u)
-
+                if [[ "$default_fstab_prop" == default ]] ; then
+                    default_fstab_prefixx="fstab.$hardware_boot fstab.$default_fstab_prop fstab.$(getprop ro.product.device)"
+                else
+                    default_fstab_prefixx="fstab.$hardware_boot fstab.$default_fstab_prop fstab.$(getprop ro.product.device) fstab.default"
+                fi
                 while IFS= read -r while_line_fstab; do
                     if echo "$while_line_fstab" | grep "mount_all --late" | grep -v "#" &>> "$LOGNEO" ; then
                         echo 11 | log
-                        for fstab_needed_patch in "fstab.$hardware_boot" "fstab.$default_fstab_prop" "fstab.$(getprop ro.product.device)" ; do
+                        for fstab_needed_patch in $default_fstab_prefixx; do
                             echo 12 | log
                             if ! echo "$fstab_names_check" | grep $fstab_needed_patch &>>$LOGNEO ; then
                                 fstab_names_check+="$fstab_needed_patch "
@@ -1317,7 +1327,7 @@ move_files_from_vendor_hw(){ # <--- Определение функции [Ар�
                         if echo "$fstab_base_name__" | grep "\\$" &>>$LOGNEO ; then
                             echo 14 | log
                             fstab_base_name__=""
-                            for file in "fstab.$hardware_boot" "fstab.$default_fstab_prop" "fstab.$(getprop ro.product.device)" ; do
+                            for file in $default_fstab_prefixx ; do
                                 if [[ -f $full_path_to_vendor_folder/etc/$file ]] ; then
                                     fstab_base_name__="$file"
                                     break
@@ -1353,8 +1363,6 @@ move_files_from_vendor_hw(){ # <--- Определение функции [Ар�
         fi
         add_custom_rc_line_to_inirc_and_add_files "$last_init_rc_file_for_write"
     }
-
-
 
 }; export -f move_files_from_vendor_hw
 
