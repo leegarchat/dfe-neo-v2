@@ -45,8 +45,6 @@ log(){
     fi 
 }
 
-
-
 echo "- Определение PATH с новыми бинарниками" &>>$LOGNEO && { # <--- обычный код
     binary_pull_busubox="mv cp dirname basename grep blockdev [ [[ ps stat unzip mountpoint find echo sleep sed mkdir ls ln readlink realpath cat awk wc du"
     binary_pull_busubox+=""
@@ -69,7 +67,6 @@ echo "- Определение PATH с новыми бинарниками" &>>$
     export PATH="$TOOLS:$PATH"
     getprop | log getprop
 }
-
 
 my_print(){ # <--- Определение функции [Аругменты $1 "Вывод сообщения"]
     case $WHERE_INSTALLING in
@@ -744,89 +741,6 @@ remove_dfe_neo(){ # <--- Определение функции [Аругмент
 
 }; export -f remove_dfe_neo
 
-ramdisk_first_stage_patch(){ # <--- Определение функции $1 передаються именя boot которые надо пропатчить
-    for boot in $1 ; do
-        ramdisk_compress_format=""
-        my_print "- Патчинг first_stage $boot"
-        boot_folder="$TMPN/ramdisk_patch/$boot"
-        mkdir -pv "$TMPN/ramdisk_patch/$boot/ramdisk_folder" | log
-        boot_block=$(find_block_neo -b $boot)
-        cd $boot_folder
-        my_print "- $word34 $boot"
-        magiskboot unpack -h "$boot_block" | log
-        cd "$boot_folder/ramdisk_folder"
-        if [[ -f "$boot_folder/ramdisk.cpio" ]] ; then
-            my_print "- $word34 ramdisk.cpio"
-        else
-            abort_neo -e 91.5 -m "Somthing wrong"
-        fi
-        
-        if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
-            my_print "- $word35"
-            magiskboot decompress "$boot_folder/ramdisk.cpio" "$boot_folder/ramdisk.d.cpio" &>$boot_folder/log.decompress
-            rm -f "$boot_folder/ramdisk.cpio"
-            mv "$boot_folder/ramdisk.d.cpio" "$boot_folder/ramdisk.cpio"
-            ramdisk_compress_format=$(grep "Detected format:" $boot_folder/log.decompress | sed 's/.*\[\(.*\)\].*/\1/')
-        fi
-        if [[ -n "$ramdisk_compress_format" ]] ; then
-            if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
-                exit 152
-            fi
-        fi
-        for needed_add_find_arg in $final_fstab_name ; do
-            if [[ -z "$find_args" ]] ; then 
-                find_args="-name $needed_add_find_arg"
-            else
-                find_args+=" -or -name $needed_add_find_arg"
-            fi
-        done
-        for fstab in $(find "$boot_folder/ramdisk_folder/" $needed_add_find_arg); do
-            my_print "- $word36 $(basename $fstab)"
-            if grep -q "/venodr/etc/init/hw" "$fstab" ; then
-                sed -i '/\/venodr\/etc\/init\/hw/d' "$fstab"
-            fi
-            if grep -q "/vendor/etc/init/hw" "$fstab" ; then
-                sed -i '/\/vendor\/etc\/init\/hw/d' "$fstab"
-            fi
-            if grep -q "/system/etc/init/hw" "$fstab" ; then
-                sed -i '/\/system\/etc\/init\/hw/d' "$fstab"
-            fi
-            [[ -n "$(tail -n 1 "$fstab")" ]] && echo "" >>"$fstab"
-            if $FLASH_IN_SUPER; then
-                if ! $A_ONLY_DEVICE; then
-                    my_print "- $word37"
-                    echo "${NAME_INJECT_NEO}    /vendor/etc/init/hw ext4    ro,discard  slotselect,logical,first_stage_mount" >>$fstab
-                else
-                    my_print "- $word38"
-                    echo "${NAME_INJECT_NEO}    /vendor/etc/init/hw ext4    ro,discard  logical,first_stage_mount" >>$fstab
-                fi
-            elif $FLASH_IN_BOOT; then
-                my_print "- $word39 boot$UNCURRENT_SUFFIX"
-                echo "/dev/block/by-name/boot$UNCURRENT_SUFFIX    /vendor/etc/init/hw ext4    ro  first_stage_mount" >>$fstab
-            elif $FLASH_IN_VENDOR_BOOT; then
-                my_print "- $word39 vendor_boot$UNCURRENT_SUFFIX"
-                echo "/dev/block/by-name/vendor_boot$UNCURRENT_SUFFIX    /vendor/etc/init/hw ext4    ro  first_stage_mount" >>$fstab
-            fi
-            my_print "- $word40 $(basename $fstab) -> $boot"
-            magiskboot cpio "$boot_folder/ramdisk.cpio" "add 777 ${fstab//$boot_folder\/ramdisk_folder\//} $fstab" | log
-        done
-        cd $boot_folder
-        if [[ -n "$ramdisk_compress_format" ]] ; then
-            my_print "- $word41 $ramdisk_compress_format"
-            magiskboot compress="${ramdisk_compress_format}" "$boot_folder/ramdisk.cpio" "$boot_folder/ramdisk.compress.cpio" | log
-            rm -f "$boot_folder/ramdisk.cpio"
-            mv "$boot_folder/ramdisk.compress.cpio" "$boot_folder/ramdisk.cpio"
-        fi
-        my_print "- $word42 $boot"
-        magiskboot repack $boot_block | log
-        my_print "- $word43 new-$boot -> $boot_block"
-        blockdev --setrw $boot_block | log
-        cat $boot_folder/new-boot.img > $boot_block
-        rm -rf "$TMPN/ramdisk_patch"
-    done
-    
-}; export -f ramdisk_first_stage_patch
-
 check_dfe_neo_installing(){ # <--- Определение функции [Аругментов нет]
     if ! $FORCE_START; then
         my_print "- $word44"
@@ -1141,7 +1055,6 @@ add_custom_rc_line_to_inirc_and_add_files(){ # <--- Определение фу�
     fi
 }; export -f add_custom_rc_line_to_inirc_and_add_files
 
-
 patch_fstab_neo(){ # <--- Определение функции [-m, -r|-p, -f, -o, -v]
     removeoverlay=false
     removepattern=""
@@ -1265,7 +1178,6 @@ move_fstab_from_original_vendor_and_patch(){ # <--- Определение фу�
 
 }; export -f move_fstab_from_original_vendor_and_patch
 
-
 move_files_from_vendor_hw(){ # <--- Определение функции [Аругментов нет]
 
     echo "- Определение ro_haedware and fstab_suffix" &>>$LOGNEO && { # <--- обычный код
@@ -1313,49 +1225,57 @@ move_files_from_vendor_hw(){ # <--- Определение функции [Ар�
                                 fstab_names_check+="$fstab_needed_patch "
                             fi
                             move_fstab_from_original_vendor_and_patch "$full_path_to_vendor_folder/etc/$fstab_needed_patch"
-                            case "$?" in
-                            10) 
-                                final_fstab_name+="$fstab_needed_patch "
+                            return_error="$?"
+                            case "$return_error" in
+                            10|20)
+                                if [[ "$return_error" == "10" ]] ; then
+                                    final_fstab_name+="$fstab_needed_patch "
+                                fi
                                 sed -i '/^    mount_all --late$/s/.*/    mount_all \/vendor\/etc\/init\/hw\/fstab.'$hardware_boot' --late/g' "$file_find"
                                 $MOUNT_FSTAB_EARLY_TOO && sed -i '/^    mount_all --early$/s/.*/    mount_all \/vendor\/etc\/init\/hw\/fstab.'$hardware_boot' --early/g' $file_find
+                                last_init_rc_file_for_write=$file_find
                             ;;
                             esac
                         done
-                        last_init_rc_file_for_write=$file_find
+                        
                     else
-                        fstab_base_name__=$(basename "$(echo "$while_line_fstab" | awk '{print $2}')")
-                        if echo "$fstab_base_name__" | grep "\\$" &>>$LOGNEO ; then
+                        fstab_base_name__SS=$(basename "$(echo "$while_line_fstab" | awk '{print $2}')")
+                        if echo "$fstab_base_name__SS" | grep "\\$" &>>$LOGNEO ; then
                             echo 14 | log
-                            fstab_base_name__=""
+                            fstab_base_name__SS=""
                             for file in $default_fstab_prefixx ; do
                                 if [[ -f $full_path_to_vendor_folder/etc/$file ]] ; then
-                                    fstab_base_name__="$file"
+                                    fstab_base_name__SS="$file"
                                     break
                                 fi
                             done
-                            [[ -z "$fstab_base_name__" ]] && exit 81
+                            [[ -z "$fstab_base_name__SS" ]] && exit 81
                         fi
                         echo 17 | log
-                        if ! echo "$fstab_names_check" | grep $fstab_base_name__ &>>$LOGNEO ; then
-                            fstab_names_check+="$fstab_base_name__ "
+                        if ! echo "$fstab_names_check" | grep $fstab_base_name__SS &>>$LOGNEO ; then
+                            fstab_names_check+="$fstab_base_name__SS "
                         fi
-                        new_path_fstab="$(echo "$while_line_fstab" | sed "s|[^ ]*fstab[^ ]*|/vendor/etc/init/hw/$fstab_base_name__|")"
-                        move_fstab_from_original_vendor_and_patch "$full_path_to_vendor_folder/etc/$fstab_base_name__"
-                        case "$?" in
-                            10)
-                                final_fstab_name+="$fstab_needed_patch " 
+                        new_path_fstab="$(echo "$while_line_fstab" | sed "s|[^ ]*fstab[^ ]*|/vendor/etc/init/hw/$fstab_base_name__SS|")"
+                        move_fstab_from_original_vendor_and_patch "$full_path_to_vendor_folder/etc/$fstab_base_name__SS"
+                        return_error="$?"
+                        case "$return_error" in
+                            10|20)
+                                if [[ "$return_error" == "10" ]] ; then
+                                    final_fstab_name+="$fstab_base_name__SS " 
+                                fi
+                                sed -i "s|$while_line_fstab|$new_path_fstab|g" "$file_find"
+                                last_init_rc_file_for_write=$file_find
+                                if $MOUNT_FSTAB_EARLY_TOO ; then
+                                    sed -i "s|${while_line_fstab//"--late"/"--early"}|${new_path_fstab//"--late"/"--early"}|g" "$file_find"
+                                fi
                             ;;
                         esac
-                        sed -i "s|$while_line_fstab|$new_path_fstab|g" "$file_find"
-                        last_init_rc_file_for_write=$file_find
-                        if $MOUNT_FSTAB_EARLY_TOO ; then
-                            sed -i "s|${while_line_fstab//"--late"/"--early"}|${new_path_fstab//"--late"/"--early"}|g" "$file_find"
-                        fi
+                        
                     fi  
                 done <<< "$fstab_lines_all"
             fi
         done
-        if [[ -z "$final_fstab_name" ]] ; then
+        if [[ -z "$final_fstab_name" ]] || [[ "$final_fstab_name" == "" ]] ; then
             if ! [[ "$full_path_to_vendor_folder" == "/vendor" ]] ; then 
                 umount -fl "$full_path_to_vendor_folder"
             fi
@@ -1365,6 +1285,147 @@ move_files_from_vendor_hw(){ # <--- Определение функции [Ар�
     }
 
 }; export -f move_files_from_vendor_hw
+
+check_first_stage_fstab(){ # <--- Определение функции [Аругментов нет]
+    log -s проверка бутов на first stage
+    for boot in "vendor_boot$CURRENT_SUFFIX" "boot$CURRENT_SUFFIX" ; do
+        log -s проверка $boot
+        if ! find_block_neo -c -b $boot ; then
+            log -s $boot не найден
+            continue
+        fi
+        mkdir -pv "$TMPN/check_boot_first_stage/" | log
+        boot_check_folder="$TMPN/check_boot_first_stage/$boot"
+        log -s $boot_check_folder
+        mkdir -pv "$boot_check_folder/ramdisk_folder" | log
+        vendor_boot_block=$(find_block_neo -b $boot)
+        log -s $vendor_boot_block
+        cd "$boot_check_folder"
+        if magiskboot unpack -h "$vendor_boot_block" &>> "$LOGNEO" ; then
+            ls | log "Содержимое папки $boot_check_folder/ramdisk_folder"
+            if [[ -f "$boot_check_folder/ramdisk.cpio" ]] ; then
+                log -s файл ramdisk.cpio обнаружен
+                cd "$boot_check_folder/ramdisk_folder"
+                if ! magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
+                    log -s не удалось распаковать cpio, возможно в нем формат сжатия
+                    magiskboot decompress "$boot_check_folder/ramdisk.cpio" "$boot_check_folder/ramdisk.d.cpio" | log
+                    ls | log "Содержимое папки $boot_check_folder"
+                    rm -f "$boot_check_folder/ramdisk.cpio"
+                    mv "$boot_check_folder/ramdisk.d.cpio" "$boot_check_folder/ramdisk.cpio"
+                    ls | log "Содержимое папки $boot_check_folder"
+                    if ! magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
+                        continue
+                    fi
+                    
+                fi
+                    find_args=""
+                    ls | log "Содержимое папки $boot_check_folder"
+                    for needed_add_find_arg in $final_fstab_name ; do
+                        if [[ -z "$find_args" ]] ; then 
+                            find_args="-name $needed_add_find_arg"
+                        else
+                            find_args+=" -or -name $needed_add_find_arg"
+                        fi
+                    done
+                    for fstab in $(find "$boot_check_folder/ramdisk_folder/" $find_args); do
+                        if grep -w "/system" $fstab | grep "first_stage_mount" &>> "$LOGNEO" ; then
+                            BOOT_PATCH+="$boot "
+                        fi
+                    done
+            fi
+        fi
+        rm -rf "$TMPN/check_boot_first_stage/"
+    done
+    if [[ -n "$BOOT_PATCH" ]] ; then
+        return 0
+    else
+        return 1
+    fi
+}; export -f check_first_stage_fstab
+
+ramdisk_first_stage_patch(){ # <--- Определение функции $1 передаються именя boot которые надо пропатчить
+    for boot in $1 ; do
+        ramdisk_compress_format=""
+        my_print "- Патчинг first_stage $boot"
+        boot_folder="$TMPN/ramdisk_patch/$boot"
+        mkdir -pv "$TMPN/ramdisk_patch/$boot/ramdisk_folder" | log
+        boot_block=$(find_block_neo -b $boot)
+        cd $boot_folder
+        my_print "- $word34 $boot"
+        magiskboot unpack -h "$boot_block" | log
+        cd "$boot_folder/ramdisk_folder"
+        if [[ -f "$boot_folder/ramdisk.cpio" ]] ; then
+            my_print "- $word34 ramdisk.cpio"
+        else
+            abort_neo -e 91.5 -m "Somthing wrong"
+        fi
+        
+        if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
+            my_print "- $word35"
+            magiskboot decompress "$boot_folder/ramdisk.cpio" "$boot_folder/ramdisk.d.cpio" &>$boot_folder/log.decompress
+            rm -f "$boot_folder/ramdisk.cpio"
+            mv "$boot_folder/ramdisk.d.cpio" "$boot_folder/ramdisk.cpio"
+            ramdisk_compress_format=$(grep "Detected format:" $boot_folder/log.decompress | sed 's/.*\[\(.*\)\].*/\1/')
+        fi
+        if [[ -n "$ramdisk_compress_format" ]] ; then
+            if ! magiskboot cpio "$boot_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
+                exit 152
+            fi
+        fi
+        find_args=""
+        for needed_add_find_arg in $final_fstab_name ; do
+            if [[ -z "$find_args" ]] ; then 
+                find_args="-name $needed_add_find_arg"
+            else
+                find_args+=" -or -name $needed_add_find_arg"
+            fi
+        done
+        for fstab in $(find "$boot_folder/ramdisk_folder/" $find_args); do
+            my_print "- $word36 $(basename $fstab)"
+            if grep -q "/venodr/etc/init/hw" "$fstab" ; then
+                sed -i '/\/venodr\/etc\/init\/hw/d' "$fstab"
+            fi
+            if grep -q "/vendor/etc/init/hw" "$fstab" ; then
+                sed -i '/\/vendor\/etc\/init\/hw/d' "$fstab"
+            fi
+            if grep -q "/system/etc/init/hw" "$fstab" ; then
+                sed -i '/\/system\/etc\/init\/hw/d' "$fstab"
+            fi
+            [[ -n "$(tail -n 1 "$fstab")" ]] && echo "" >>"$fstab"
+            if $FLASH_IN_SUPER; then
+                if ! $A_ONLY_DEVICE; then
+                    my_print "- $word37"
+                    echo "${NAME_INJECT_NEO}    /vendor/etc/init/hw ext4    ro,discard  slotselect,logical,first_stage_mount" >>$fstab
+                else
+                    my_print "- $word38"
+                    echo "${NAME_INJECT_NEO}    /vendor/etc/init/hw ext4    ro,discard  logical,first_stage_mount" >>$fstab
+                fi
+            elif $FLASH_IN_BOOT; then
+                my_print "- $word39 boot$UNCURRENT_SUFFIX"
+                echo "/dev/block/by-name/boot$UNCURRENT_SUFFIX    /vendor/etc/init/hw ext4    ro  first_stage_mount" >>$fstab
+            elif $FLASH_IN_VENDOR_BOOT; then
+                my_print "- $word39 vendor_boot$UNCURRENT_SUFFIX"
+                echo "/dev/block/by-name/vendor_boot$UNCURRENT_SUFFIX    /vendor/etc/init/hw ext4    ro  first_stage_mount" >>$fstab
+            fi
+            my_print "- $word40 $(basename $fstab) -> $boot"
+            magiskboot cpio "$boot_folder/ramdisk.cpio" "add 777 ${fstab//$boot_folder\/ramdisk_folder\//} $fstab" | log
+        done
+        cd $boot_folder
+        if [[ -n "$ramdisk_compress_format" ]] ; then
+            my_print "- $word41 $ramdisk_compress_format"
+            magiskboot compress="${ramdisk_compress_format}" "$boot_folder/ramdisk.cpio" "$boot_folder/ramdisk.compress.cpio" | log
+            rm -f "$boot_folder/ramdisk.cpio"
+            mv "$boot_folder/ramdisk.compress.cpio" "$boot_folder/ramdisk.cpio"
+        fi
+        my_print "- $word42 $boot"
+        magiskboot repack $boot_block | log
+        my_print "- $word43 new-$boot -> $boot_block"
+        blockdev --setrw $boot_block | log
+        cat $boot_folder/new-boot.img > $boot_block
+        rm -rf "$TMPN/ramdisk_patch"
+    done
+    
+}; export -f ramdisk_first_stage_patch
 
 check_whare_to_inject(){ # <--- Определение функции [Аругментов нет]
             
@@ -1571,7 +1632,7 @@ flash_inject_neo_to_super(){ # <--- Определение функции [Ар�
         if find_block_neo -c -b "${NAME_INJECT_NEO}${CURRENT_SUFFIX}"; then
             cat "$NEO_IMG" > "$(find_block_neo -b "${NAME_INJECT_NEO}${CURRENT_SUFFIX}")"
             if test_mount_neo_inject "$(find_block_neo -b "${NAME_INJECT_NEO}${CURRENT_SUFFIX}")" &>> "$LOGNEO" ; then
-                my_print "- Успех записи neo_inject в super"
+                my_print "- $word84 super"
                 FLASH_IN_BOOT=false
                 FLASH_IN_VENDOR_BOOT=false
             else
@@ -1589,63 +1650,6 @@ flash_inject_neo_to_super(){ # <--- Определение функции [Ар�
     return 0
 
 }; export -f flash_inject_neo_to_super
-
-check_first_stage_fstab(){ # <--- Определение функции [Аругментов нет]
-    log -s проверка бутов на first stage
-    for boot in "vendor_boot$CURRENT_SUFFIX" "boot$CURRENT_SUFFIX" ; do
-        log -s проверка $boot
-        if ! find_block_neo -c -b $boot ; then
-            log -s $boot не найден
-            continue
-        fi
-        mkdir -pv "$TMPN/check_boot_first_stage/" | log
-        boot_check_folder="$TMPN/check_boot_first_stage/$boot"
-        log -s $boot_check_folder
-        mkdir -pv "$boot_check_folder/ramdisk_folder" | log
-        vendor_boot_block=$(find_block_neo -b $boot)
-        log -s $vendor_boot_block
-        cd "$boot_check_folder"
-        if magiskboot unpack -h "$vendor_boot_block" &>> "$LOGNEO" ; then
-            ls | log "Содержимое папки $boot_check_folder/ramdisk_folder"
-            if [[ -f "$boot_check_folder/ramdisk.cpio" ]] ; then
-                log -s файл ramdisk.cpio обнаружен
-                cd "$boot_check_folder/ramdisk_folder"
-                if ! magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
-                    log -s не удалось распаковать cpio, возможно в нем формат сжатия
-                    magiskboot decompress "$boot_check_folder/ramdisk.cpio" "$boot_check_folder/ramdisk.d.cpio" | log
-                    ls | log "Содержимое папки $boot_check_folder"
-                    rm -f "$boot_check_folder/ramdisk.cpio"
-                    mv "$boot_check_folder/ramdisk.d.cpio" "$boot_check_folder/ramdisk.cpio"
-                    ls | log "Содержимое папки $boot_check_folder"
-                    if ! magiskboot cpio "$boot_check_folder/ramdisk.cpio" extract &>> "$LOGNEO" ; then
-                        continue
-                    fi
-                    
-                fi
-                    find_args=""
-                    ls | log "Содержимое папки $boot_check_folder"
-                    for needed_add_find_arg in $final_fstab_name ; do
-                        if [[ -z "$find_args" ]] ; then 
-                            find_args="-name $needed_add_find_arg"
-                        else
-                            find_args+=" -or -name $needed_add_find_arg"
-                        fi
-                    done
-                    for fstab in $(find "$boot_check_folder/ramdisk_folder/" $find_args); do
-                        if grep -w "/system" $fstab | grep "first_stage_mount" &>> "$LOGNEO" ; then
-                            BOOT_PATCH+="$boot "
-                        fi
-                    done
-            fi
-        fi
-        rm -rf "$TMPN/check_boot_first_stage/"
-    done
-    if [[ -n "$BOOT_PATCH" ]] ; then
-        return 0
-    else
-        return 1
-    fi
-}; export -f check_first_stage_fstab
 
 default_post_install(){
     if $DISABLE_VERITY_VBMETA_PATCH ; then 

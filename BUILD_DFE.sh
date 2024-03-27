@@ -41,10 +41,12 @@ files_needed=(
     
 )
 magisk_files=(
+    MAGISK/Magisk-Delta-v26.4.apk
+    MAGISK/Magisk-Delta-v27.0.apk
+    MAGISK/Magisk-kitsune-v27-R65C33E4F.apk
     MAGISK/Magisk-v26.4-kitsune-2.apk
     MAGISK/Magisk-v26.4.apk
     MAGISK/Magisk-v27.0.zip
-    MAGISK/MagiskDelta-v26.4.apk
 )
 arm64_bin=(
     META-INF/tools/binary/arm64-v8a/avbctl
@@ -184,7 +186,7 @@ for full_lite in $FULL_LITE_ARGS ; do
             esac 
             cd "$DIRNAME/META-INF/tools/languages/$language"
             7z a -mx9 "$NAME_ZIP" NEO.config &>/dev/null
-            cd "$DIRNAME" && 
+            cd "$DIRNAME"
             7z a -mx9 "$NAME_ZIP" $README_FILE &>/dev/null 
             [[ "$full_lite" == full ]] && 7z a -mx9 "$NAME_ZIP" "${magisk_files[@]}" &>/dev/null
             echo "- Компиляция $full_lite:$(basename "$NAME_ZIP") завершена"
