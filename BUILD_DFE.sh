@@ -190,9 +190,13 @@ for full_lite in $FULL_LITE_ARGS ; do
             7z a -mx9 "$NAME_ZIP" $README_FILE &>/dev/null 
             [[ "$full_lite" == full ]] && 7z a -mx9 "$NAME_ZIP" "${magisk_files[@]}" &>/dev/null
             echo "- Компиляция $full_lite:$(basename "$NAME_ZIP") завершена"
+            if [[ -n "$TEST" ]] ; then
+                cp "$NAME_ZIP" $DIRNAME/../DFE-NEO-builds/
+            fi
             } &
         done
         wait
+        
     done
 done
 echo "Зборка версии $VERSION завершена!"

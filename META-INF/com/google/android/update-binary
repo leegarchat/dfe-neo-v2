@@ -11,7 +11,7 @@ else
   export SYS_STATUS=true
 fi
 
-export EXEMPLE_VERSION="2.5.1"
+export EXEMPLE_VERSION="2.6.0-public-test-1"
 
 # Custom print function
 my_print(){
