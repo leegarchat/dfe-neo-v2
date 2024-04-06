@@ -58,6 +58,8 @@ arm64_bin=(
     META-INF/tools/binary/arm64-v8a/magiskboot
     META-INF/tools/binary/arm64-v8a/make_ext4fs
     META-INF/tools/binary/arm64-v8a/resize2fs
+    META-INF/tools/binary/arm64-v8a/e2fsck
+    META-INF/tools/binary/arm64-v8a/tune2fs
     META-INF/tools/binary/arm64-v8a/snapshotctl
     META-INF/tools/binary/arm64-v8a/sqlite3
     META-INF/tools/binary/arm64-v8a/toolbox
@@ -73,6 +75,8 @@ arm32_bin=(
     META-INF/tools/binary/armeabi-v7a/magiskboot
     META-INF/tools/binary/armeabi-v7a/make_ext4fs
     META-INF/tools/binary/armeabi-v7a/resize2fs
+    META-INF/tools/binary/armeabi-v7a/e2fsck
+    META-INF/tools/binary/armeabi-v7a/tune2fs
     META-INF/tools/binary/armeabi-v7a/snapshotctl
     META-INF/tools/binary/armeabi-v7a/sqlite3
     META-INF/tools/binary/armeabi-v7a/toolbox
@@ -88,6 +92,8 @@ x86_bin=(
     META-INF/tools/binary/x86/magiskboot
     META-INF/tools/binary/x86/make_ext4fs
     META-INF/tools/binary/x86/resize2fs
+    META-INF/tools/binary/x86/e2fsck
+    META-INF/tools/binary/x86/tune2fs
     META-INF/tools/binary/x86/snapshotctl
     META-INF/tools/binary/x86/sqlite3
     META-INF/tools/binary/x86/toolbox
@@ -103,6 +109,8 @@ x86_64_bin=(
     META-INF/tools/binary/x86_64/magiskboot
     META-INF/tools/binary/x86_64/make_ext4fs
     META-INF/tools/binary/x86_64/resize2fs
+    META-INF/tools/binary/x86_64/e2fsck
+    META-INF/tools/binary/x86_64/tune2fs
     META-INF/tools/binary/x86_64/snapshotctl
     META-INF/tools/binary/x86_64/sqlite3
     META-INF/tools/binary/x86_64/toolbox
